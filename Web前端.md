@@ -16,10 +16,12 @@ typora-root-url: D:\Typora文件库\Typora图库\Web前端
 - ⾮装饰性图⽚必须加alt
 - 提⾼⽹站速度：⽹站速度是搜索引擎排序的⼀个重要指标
 
-### 2 `<img>` 的title 和alt 有什么区别
+### 2 `<img>` 的title 和alt 有什么区别？strong与em的异同？
 
 - 通常当⿏标滑动到元素上的时候显示
 - alt 是<img> 的特有属性，是图⽚内容的等价描述，**⽤于图⽚⽆法加载时显示**、读屏器阅读图⽚。可提图⽚⾼可访问性，**除了纯装饰图⽚外都必须设置有意义的值**，搜索引擎会重点分析。
+- strong :粗体强调标签，强调，表示内容的重要性
+- em :斜体强调标签，更强烈强调，表示内容的强调点
 
 ### 3 HTTP的⼏种请求⽅法⽤途
 
@@ -181,7 +183,251 @@ HTML 语义化就是让⻚⾯的内容结构化，便于对浏览器、搜索引
 
 最开始渲染引擎和JS 引擎并没有区分的很明确，后来JS引擎越来越独⽴，内核就倾向于只指渲染引擎
 
-### 9 html5有哪些新特性、移除了那些元素？
+### 9 HTML5 的离线储存怎么使⽤，⼯作原理能不能解释⼀下？
+
+在⽤户没有与因特⽹连接时，可以正常访问站点或应⽤，在⽤户与因特⽹连接时，更新⽤户机器上的缓存⽂件
+
+原理： HTML5 的离线存储是基于⼀个新建的.appcache ⽂件的缓存机制(不是存储技术)，通过这个⽂件上的解析清单离线存储资源，这些资源就会像cookie ⼀样被存储了下来。之后当⽹络在处于离线状态下时，浏览器会通过被离线存储的数据进⾏⻚⾯展示
+
+如何使⽤：
+
+- ⻚⾯头部像下⾯⼀样加⼊⼀个manifest 的属性；
+- 在cache.manifest ⽂件的编写离线存储的资源
+- 在离线状态时，操作window.applicationCache 进⾏需求实现
+
+浏览器是怎么对HTML5 的离线储存资源进⾏管理和加载的呢：
+
+- 在线的情况下，浏览器发现html 头部有manifest 属性，它会请求manifest ⽂件，如果是第⼀次访问app ，那么浏览器就会根据manifest⽂件的内容下载相应的资源并且进⾏离线存储。如果已经访问过app 并且资源已经离线存储了，那么浏览器就会使⽤离线的资源加载⻚⾯，然后浏览器会对⽐新的manifest ⽂件与旧的manifest ⽂件，如果⽂件没有发⽣改变，就不做任何操作，如果⽂件改变了，那么就会重新下载⽂件中的资源并进⾏离线存储。
+- 离线的情况下，浏览器就直接使⽤离线存储的资源。
+
+### 10  cookies ， sessionStorage 和 localStorage 的区别？
+
+- cookie 是⽹站为了标示⽤户身份⽽储存在⽤户本地终端（Client Side）上的数据（通常经过加密）
+- cookie数据始终在同源的http请求中携带（即使不需要），记会在浏览器和服务器间来回传递
+- sessionStorage 和localStorage 不会⾃动把数据发给服务器，仅在本地保存
+- 存储⼤⼩：
+
+  - cookie 数据⼤⼩不能超过4k
+
+  - sessionStorage 和localStorage 虽然也有存储⼤⼩的限制，但⽐cookie ⼤得多，可以达到5M或更⼤
+- 有期时间：
+	- localStorage 存储持久数据，浏览器关闭后数据不丢失除⾮主动删除数据
+	- sessionStorage 数据在当前浏览器窗⼝关闭后⾃动删除
+	- cookie 设置的cookie 过期时间之前⼀直有效，即使窗⼝或浏览器关闭
+
+### 11 iframe有那些缺点？
+
+- iframe 会阻塞主⻚⾯的Onload 事件
+- 搜索引擎的检索程序⽆法解读这种⻚⾯，不利于SEO
+- iframe 和主⻚⾯共享连接池，⽽浏览器对相同域的连接有限制，所以会影响⻚⾯的并⾏加载
+- 使⽤iframe 之前需要考虑这两个缺点。如果需要使⽤iframe ，最好是通过javascript 动态给iframe 添加src 属性值，这样可以绕开以上两个问题
+
+### 12 WEB标准以及W3C标准是什么?
+
+标签闭合、标签⼩写、不乱嵌套、使⽤外链css 和js 、结构⾏为表现的分离
+
+### 13 Doctype作⽤? 严格模式与混杂模式如何区分？它们有何意义?
+
+- ⻚⾯被加载的时， link 会同时被加载，⽽@imort ⻚⾯被加载的时， link 会同时被加载，⽽@import 引⽤的CSS 会等到⻚⾯被加载完再加载 import 只在IE5 以上才能识别，⽽link 是XHTML 标签，⽆兼容问题 link ⽅式的样式的权重 ⾼于@import 的权重
+- `<!DOCTYPE>` 声明位于⽂档中的最前⾯，处于 `<html>` 标签之前。告知浏览器的解析器， ⽤什么⽂档类型 规范来解析这个⽂档
+- 严格模式的排版和 JS 运作模式是 以该浏览器⽀持的最⾼标准运⾏
+- 在混杂模式中，⻚⾯以宽松的向后兼容的⽅式显示。模拟⽼式浏览器的⾏为以防⽌站点⽆法⼯作。 DOCTYPE 不存在或格式不正确会导致⽂档以混杂模式呈现
+
+### 14 ⾏内元素有哪些？块级元素有哪些？ 空(void)元素有那些？⾏内元素和块级元素有什么区别？
+
+- ⾏内元素有： a b span img input select strong
+- 块级元素有： div ul ol li dl dt dd h1 h2 h3 h4… p
+- 空元素：` <br> <hr> <img> <input> <link> <meta>`
+- ⾏内元素不可以设置宽⾼，不独占⼀⾏
+- 块级元素可以设置宽⾼，独占⼀⾏
+
+### 15 HTML全局属性(global attribute)有哪些
+
+- class :为元素设置类标识
+- data-* : 为元素增加⾃定义属性
+- draggable : 设置元素是否可拖拽
+- id : 元素id ，⽂档内唯⼀
+- lang : 元素内容的的语⾔
+- style : ⾏内css 样式
+- title : 元素相关的建议信息
+
+### 16 Canvas和SVG有什么区别？
+
+- svg 绘制出来的每⼀个图形的元素都是独⽴的DOM 节点，能够⽅便的绑定事件或⽤来修改。canvas 输出的是⼀整幅画布
+- svg 输出的图形是⽮量图形，后期可以修改参数来⾃由放⼤缩⼩，不会失真和锯⻮。⽽canvas 输出标量画布，就像⼀张图⽚⼀样，放⼤会失真或者锯⻮
+
+### 17 如何在⻚⾯上实现⼀个圆形的可点击区域？
+
+svg
+border-radius
+纯js 实现 需要求⼀个点在不在圆上简单算法、获取⿏标坐标等等
+
+### 18 ⽹⻚验证码是⼲嘛的，是为了解决什么安全问题
+
+- 区分⽤户是计算机还是⼈的公共全⾃动程序。可以防⽌恶意破解密码、刷票、论坛灌⽔
+- 有效防⽌⿊客对某⼀个特定注册⽤户⽤特定程序暴⼒破解⽅式进⾏不断的登陆尝试
+
+### 19 viewport
+
+```javascript
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimu
+// width 设置viewport宽度，为⼀个正整数，或字符串‘device-width’
+// device-width 设备宽度
+// height 设置viewport⾼度，⼀般设置了宽度，会⾃动解析出⾼度，可以不⽤设置
+// initial-scale 默认缩放⽐例（初始缩放⽐例），为⼀个数字，可以带⼩数
+// minimum-scale 允许⽤户最⼩缩放⽐例，为⼀个数字，可以带⼩数
+// maximum-scale 允许⽤户最⼤缩放⽐例，为⼀个数字，可以带⼩数
+// user-scalable 是否允许⼿动缩放
+```
+
+- 延伸提问
+  - 怎样处理 移动端 1px 被 渲染成 2px 问题
+- 局部处理
+- mate 标签中的 viewport 属性 ， initial-scale 设置为 1
+- rem 按照设计稿标准⾛，外加利⽤transfrome 的scale(0.5) 缩⼩⼀倍即可；
+- 全局处理
+  - mate 标签中的 viewport 属性 ， initial-scale 设置为 0.5
+  - rem 按照设计稿标准⾛即可
+
+### 20 渲染优化
+
+- 禁⽌使⽤iframe （阻塞⽗⽂档onload 事件）
+  - iframe 会阻塞主⻚⾯的Onload 事件
+  - 搜索引擎的检索程序⽆法解读这种⻚⾯，不利于SEO
+  - iframe 和主⻚⾯共享连接池，⽽浏览器对相同域的连接有限制，所以会影响⻚⾯的并⾏加载
+  - 使⽤iframe 之前需要考虑这两个缺点。如果需要使⽤iframe ，最好是通过javascript
+  - 动态给iframe 添加src 属性值，这样可以绕开以上两个问题
+- 禁⽌使⽤gif 图⽚实现loading 效果（降低CPU 消耗，提升渲染性能）
+- 使⽤CSS3 代码代替JS 动画（尽可能避免重绘重排以及回流）
+- 对于⼀些⼩图标，可以使⽤base64位编码，以减少⽹络请求。但不建议⼤图使⽤，⽐较耗费CPU
+  
+    - ⼩图标优势在于：减少HTTP 请求；避免⽂件跨域；修改及时⽣效
+- ⻚⾯头部的`<style></style> <script></script>` 会阻塞⻚⾯；（因为 Renderer进程中 JS 线程和渲染线程是互斥的）
+- ⻚⾯中空的 href 和 src 会阻塞⻚⾯其他资源的加载 (阻塞下载进程)
+- ⽹⻚gzip ， CDN 托管， data 缓存 ，图⽚服务器
+- 前端模板 JS+数据，减少由于HTML 标签导致的带宽浪费，前端⽤变量保存AJAX请求结果，每次操作本地变量，不⽤请求，减少请求次数
+- ⽤innerHTML 代替DOM 操作，减少DOM 操作次数，优化javascript 性能
+- 当需要设置的样式很多时设置className ⽽不是直接操作style
+  
+-  少⽤全局变量、缓存DOM 节点查找的结果。减少IO 读取操作
+
+### 21 你做的⻚⾯在哪些浏览器测试过？这些浏览器的内核分别是什么?
+
+- IE : trident 内核
+- Firefox ： gecko 内核
+
+- Safari : webkit 内核
+- Opera :以前是presto 内核， Opera 现已改⽤Google - Chrome 的Blink 内核
+- Chrome:Blink (基于webkit ，Google与Opera Software共同开发)
+
+### 22 div+css的布局较table布局有什么优点？
+
+改版的时候更⽅便 只要改css ⽂件。
+⻚⾯加载速度更快、结构化清晰、⻚⾯显示简洁。
+表现与结构相分离。
+易于优化（ seo ）搜索引擎更友好，排名更容易靠前。
+
+### 23 你能描述⼀下渐进增强和优雅降级之间的不同吗
+
+渐进增强：针对低版本浏览器进⾏构建⻚⾯，保证最基本的功能，然后再针对⾼级浏览器进⾏效果、交互等改进和追加功能达到更好的⽤户体验。
+优雅降级：⼀开始就构建完整的功能，然后再针对低版本浏览器进⾏兼容。
+
+区别：优雅降级是从复杂的现状开始，并试图减少⽤户体验的供给，⽽渐进增强则是从⼀个⾮常基础的，能够起作⽤的版本开始，并不断扩充，以适应未来环境的需要。降级（功能衰减）意味着往回看；⽽渐进增强则意味着朝前看，同时保证其根基处于安全地带
+
+### 24 为什么利⽤多个域名来存储⽹站资源会更有效？
+
+CDN 缓存更⽅便
+突破浏览器并发限制
+节约cookie 带宽
+节约主域名的连接数，优化⻚⾯响应速度
+防⽌不必要的安全问题
+
+### 25 简述⼀下src与href的区别
+
+- src ⽤于替换当前元素，href⽤于在当前⽂档和引⽤资源之间确⽴联系。
+- src 是source 的缩写，指向外部资源的位置，指向的内容将会嵌⼊到⽂档中当前标签所在位置；在请求src 资源时会将其指向的资源下载并应⽤到⽂档内，例如js 脚本，img 图⽚和frame 等元素
+  - `<script src ="js.js"></script>` 当浏览器解析到该元素时，会暂停其他资源的下载和处理，直到将该资源加载、编译、执⾏完毕，图⽚和框架等元素也如此，类似于将所指向资源嵌⼊当前标签内。这也是为什么将js脚本放在底部⽽不是头部
+- href 是Hypertext Reference 的缩写，指向⽹络资源所在位置，建⽴和当前元素（锚点）或当前⽂档（链接）之间的链接，如果我们在⽂档中添加`<link href="common.css" rel="stylesheet"/>`那么浏览器会识别该⽂档为css ⽂件，就会并⾏下载资源并且不会停⽌对当前⽂档的处理。这也是为什么**建议使⽤link ⽅式来加载css ，⽽不是使⽤@import ⽅式**
+
+### 26 知道的⽹⻚制作会⽤到的图⽚格式有哪些？
+
+- png-8 、png-24 、jpeg 、gif 、svg
+- Webp： WebP 格式，⾕歌（google）开发的⼀种旨在加快图⽚加载速度的图⽚格式。图⽚压缩体积⼤约只有JPEG 的2/3 ，并能节省⼤量的服务器带宽资源和数据空间。Facebook Ebay 等知名⽹站已经开始测试并使⽤WebP 格式。
+  在质量相同的情况下，WebP格式图像的体积要⽐JPEG格式图像⼩40% 。
+- Apng：全称是“Animated Portable Network Graphics” , 是PNG的位图动画扩展，可以实现png格式的动态图⽚效果。04年诞⽣，但⼀直得不到各⼤浏览器⼚商的⽀持，直到⽇前得到 iOS safari 8 的⽀持，有望代替GIF 成为下⼀代动态图标准
+
+### 27 从⽤户刷新⽹⻚开始，⼀次js请求⼀般情况下有哪些地⽅会有缓存处理？
+
+dns 缓存， cdn 缓存，浏览器缓存，服务器缓存
+
+### 28 优化图⽚的加载
+
+- **图⽚懒加载**，在⻚⾯上的未可视区域可以添加⼀个滚动事件，判断图⽚位置与浏览器顶端的距离与⻚⾯的距离，如果前者⼩于后者，优先加载。
+- 如果为幻灯⽚、相册等，可以使⽤**图⽚预加载**技术，将当前展示图⽚的前⼀张和后⼀张优先下载。
+- 如果图⽚为css图⽚，可以使⽤CSSsprite ， SVGsprite ， Iconfont 、Base64 等技术。
+- 如果图⽚过⼤，可以使⽤特殊编码的图⽚，加载时会先加载⼀张压缩的特别厉害的缩略图，以提⾼⽤户体验。
+- 如果图⽚展示区域⼩于图⽚的真实⼤⼩，则因在服务器端根据业务需要先⾏进⾏图⽚压缩，图⽚压缩后⼤⼩与展示⼀致。
+
+### 29 web开发中会话跟踪的⽅法
+
+cookie
+session
+url 重写
+隐藏input
+ip 地址
+
+### 30 HTTP request报⽂结构
+
+1. ⾸⾏是Request-Line包括：**请求⽅法，请求URI，协议版本，CRLF**
+2. ⾸⾏之后是若⼲⾏请求头，包括general-header，request-header或者entity-header，每个⼀⾏以CRLF结束
+3. 请求头和消息实体之间有⼀个CRLF分隔
+4. 根据实际请求需要可能包含⼀个消息实体
+
+⼀个请求报⽂例⼦如下：
+
+```
+GET /Protocols/rfc2616/rfc2616-sec5.html HTTP/1.1
+Host: www.w3.org
+Connection: keep-alive
+Cache-Control: max-age=0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/
+User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML,
+Referer: https://www.google.com.hk/
+Accept-Encoding: gzip,deflate,sdch
+Accept-Language: zh-CN,zh;q=0.8,en;q=0.6
+Cookie: authorstyle=yes
+If-None-Match: "2cc8-3e3073913b100"
+If-Modified-Since: Wed, 01 Sep 2004 13:24:52 GMT
+name=qiu&age=25
+```
+
+### 31 HTTP response报⽂结构
+
+- ⾸⾏是状态⾏包括：HTTP版本，状态码，状态描述，后⾯跟⼀个CRLF
+- ⾸⾏之后是若⼲⾏响应头，包括：通⽤头部，响应头部，实体头部
+- 响应头部和响应实体之间⽤⼀个CRLF空⾏分隔
+- 最后是⼀个可能的消息实体
+
+响应报⽂例⼦如下：
+
+```
+HTTP/1.1 200 OK
+Date: Tue, 08 Jul 2014 05:28:43 GMT
+Server: Apache/2
+Last-Modified: Wed, 01 Sep 2004 13:24:52 GMT
+ETag: "40d7-3e3073913b100"
+Accept-Ranges: bytes
+Content-Length: 16599
+Cache-Control: max-age=21600
+Expires: Tue, 08 Jul 2014 11:28:43 GMT
+P3P: policyref="http://www.w3.org/2001/05/P3P/p3p.xml"
+Content-Type: text/html; charset=iso-8859-1
+{"name": "qiu", "age": 25}
+```
+
+## 二、JavaScript
+
+### 1. 闭包
 
 
 
