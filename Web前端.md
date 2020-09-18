@@ -58,6 +58,11 @@ TRACE ⽅法：TRACE ⽅法被⽤于激发⼀个远程的，应⽤层的请求�
  3、 GET传输数据量有限制，不能大于2kb，POST传递的数据量较大，一般大量的数据提交都是通过POST方式
  4、 GET安全性较低，容易在URL中暴漏数据，POST安全性较高 
 
+ 补充一个get和post在缓存方面的区别： 
+
+- get请求类似于查找的过程，用户获取数据，可以不用每次都与数据库连接，所以可以使用缓存。
+- post不同，post做的一般是修改和删除的工作，所以必须与数据库交互，所以不能使用缓存。因此get请求适合于请求缓存。
+
 GET和POST是什么？HTTP协议中的两种发送请求的方法。
 
 HTTP是什么？HTTP是基于TCP/IP的关于数据如何在万维网中如何通信的协议。
@@ -86,9 +91,9 @@ GET与POST都有自己的语义，不能随便混用。
 
 基础版本：
 
-- 浏览器根据请求的URL 交给DNS 域名解析，找到真实IP ，向服务器发起请求；
-- 服务器交给后台处理完成后返回数据，浏览器接收⽂件（ HTML、JS、CSS 、图象等）；
-- 浏览器对加载到的资源（ HTML、JS、CSS 等）进⾏语法解析，建⽴相应的内部数据结构（如HTML 的DOM ）；
+- 浏览器根据请求的URL 交给DNS 域名解析，把url解析为IP ，和IP地址建⽴TCP链接，向服务器发送HTTP请求；
+- 服务器接收请求，查库，读⽂件等，拼接好返回的HTTP响应，返回数据，浏览器接收⽂件（ HTML、JS、CSS 、图象等），开始渲染；
+- 浏览器对加载到的资源（ HTML、JS、CSS 等）进⾏语法解析，解析html为dom （加载额外的css和js），解析css 为css-tree，建⽴相应的内部数据结构（如HTML 的DOM ）；
 - 载⼊解析到的资源⽂件，渲染⻚⾯，完成。
 
 详细版：
@@ -168,19 +173,9 @@ GET与POST都有自己的语义，不能随便混用。
 8. JS 引擎解析过程（ JS 的解释阶段，预处理阶段，执⾏阶段⽣成执⾏上下⽂， VO ，作⽤域链、回收机制等等）
 9. 其它（可以拓展不同的知识模块，如跨域，web安全， hybrid 模式等等内容）
 
-### 5 如何进⾏⽹站性能优化
+### 5 ⽹站性能优化、渲染优化
 
-content ⽅⾯：减少HTTP 请求：合并⽂件、CSS 精灵、inline Image；减少DNS 查询： DNS 缓存、将资源分布到恰当数量的主机名；减少DOM 元素数量
-Server ⽅⾯：使⽤CDN；配置ETag；对组件使⽤Gzip 压缩
-
-Cookie ⽅⾯：减⼩cookie ⼤⼩
-
-css ⽅⾯：将样式表放到⻚⾯顶部不使⽤CSS 表达式；使⽤`<link>` 不使⽤@import
-Javascript ⽅⾯：将脚本放到⻚⾯底部；将javascript 和css 从外部引⼊；压缩javascript 和css；删除不需要的脚本；减少DOM 访问
-
-图⽚⽅⾯：优化图⽚：根据实际颜⾊需要选择⾊深、压缩；优化css 精灵不要在HTML 中拉伸图⽚
-
-
+**⽹站性能优化**
 
 （1） 减少http请求次数：CSS Sprites, JS、CSS源码压缩、图片大小控制合适；网页Gzip，CDN托管，data缓存，图片服务器。
 
@@ -195,6 +190,28 @@ Javascript ⽅⾯：将脚本放到⻚⾯底部；将javascript 和css 从外部
 （6） 避免使用CSS Expression（css表达式)又称Dynamic properties(动态属性)。   
 
 （7） 图片预加载，将样式表放在顶部，将脚本放在底部  加上时间戳。
+
+**渲染优化**
+
+- 禁⽌使⽤iframe （阻塞⽗⽂档onload 事件）
+  - iframe 会阻塞主⻚⾯的Onload 事件
+  - 搜索引擎的检索程序⽆法解读这种⻚⾯，不利于SEO
+  - iframe 和主⻚⾯共享连接池，⽽浏览器对相同域的连接有限制，所以会影响⻚⾯的并⾏加载
+  - 使⽤iframe 之前需要考虑这两个缺点。如果需要使⽤iframe ，最好是通过javascript
+  - 动态给iframe 添加src 属性值，这样可以绕开以上两个问题
+- 禁⽌使⽤gif 图⽚实现loading 效果（降低CPU 消耗，提升渲染性能）
+- 使⽤CSS3 代码代替JS 动画（尽可能避免重绘重排以及回流）
+- 对于⼀些⼩图标，可以使⽤base64位编码，以减少⽹络请求。但不建议⼤图使⽤，⽐较耗费CPU
+
+  - ⼩图标优势在于：减少HTTP 请求；避免⽂件跨域；修改及时⽣效
+- ⻚⾯头部的`<style></style> <script></script>` 会阻塞⻚⾯；（因为 Renderer进程中 JS 线程和渲染线程是互斥的）
+- ⻚⾯中空的 href 和 src 会阻塞⻚⾯其他资源的加载 (阻塞下载进程)
+- ⽹⻚gzip ， CDN 托管， data 缓存 ，图⽚服务器
+- 前端模板 JS+数据，减少由于HTML 标签导致的带宽浪费，前端⽤变量保存AJAX请求结果，每次操作本地变量，不⽤请求，减少请求次数
+- ⽤innerHTML 代替DOM 操作，减少DOM 操作次数，优化javascript 性能
+- 当需要设置的样式很多时设置className ⽽不是直接操作style
+
+- 少⽤全局变量、缓存DOM 节点查找的结果。减少IO 读取操作
 
 ### 6 HTTP状态码及其含义
 
@@ -362,9 +379,7 @@ ETag：对比本地与服务器端的MD5返回值，若一致，不需要重新�
 
 ### 7 语义化的理解
 
-⽤正确的标签做正确的事情！
 HTML **语义化就是让⻚⾯的内容结构化，便于对浏览器、搜索引擎解析**；
-在没有样式CSS 情况下也以⼀种⽂档格式显示，并且是容易阅读的。
 搜索引擎的爬⾍依赖于标记来确定上下⽂和各个关键字的权重，利于 SEO 。
 使阅读源代码的⼈对⽹站更容易将⽹站分块，便于阅读维护理解
 
@@ -457,7 +472,7 @@ Cookie则用于用户登陆网站时的自动登陆以及类似"购物车"的处
 - **严格模式**的排版和 JS 运作模式是 **以该浏览器⽀持的最⾼标准运⾏**
 - 在**混杂模式**中，⻚⾯**以宽松的向后兼容的⽅式显示**。模拟⽼式浏览器的⾏为以防⽌站点⽆法⼯作。 DOCTYPE 不存在或格式不正确会导致⽂档以混杂模式呈现
 
-### 14 ⾏内元素有哪些？块级元素有哪些？ 空(void)元素有那些？⾏内元素和块级元素有什么区别？
+### 14 ⾏内元素、块级元素、空(void)元素、
 
 - ⾏内元素有：` <a> <b> <span> <img> <input> <select> <strong>`
 - 块级元素有： `<div> <ul> <ol> <li> <dl> <dt> <dd> <h1> <h2> <h3> <h4>… <p>`
@@ -480,11 +495,79 @@ Cookie则用于用户登陆网站时的自动登陆以及类似"购物车"的处
 - svg 绘制出来的每⼀个图形的元素都是**独⽴的DOM 节点**，能够⽅便的绑定事件或⽤来修改。canvas 输出的是**⼀整幅画布**
 - svg 输出的图形是**⽮量图形**，后期可以修改参数来⾃由放⼤缩⼩，不会失真和锯⻮。⽽canvas 输出**标量画布**，就像⼀张图⽚⼀样，放⼤会失真或者锯⻮
 
-### 17 如何在⻚⾯上实现⼀个圆形的可点击区域？
+### 17 a 标签的 href 属性和 onclick 事件，如何防止a的链接跳转
 
-svg
-border-radius
-纯js 实现 需要求⼀个点在不在圆上简单算法、获取⿏标坐标等等
+ 如果 a 标签上出现了 href 属性并同时绑定了 click 事件，是怎样一个执行顺序呢？ 
+
+回答： **click 事件是在页面开始跳转之前执行的**。 
+
+**禁用href**
+
+方法一：javascript:void(0)： 表示一个死链接。
+
+```html
+<a href="javascript:void(0)">btn</a>
+```
+
+ 其中，`javascript` 为协议名称，`expression` 为 javascript 表达式，返回类型为 void ，即无返回值。 不过重要的是，`javascript: void(0)` 毕竟是个伪协议，少写的好。而且存在浏览器兼容 bug（有待考证），因此这种写法并不做推荐。 
+
+方法二： preventDefault() 方法
+
+```js
+<a href="#">btn</a>
+
+$("a").click(function(e){
+  e.preventDefault();
+  alert('a');
+})
+```
+
+ 通过取消事件的默认动作防止跳转。 
+
+方法三：return false
+
+```js
+<a href="#">btn</a>
+
+$("a").click(function(){
+   alert('a');
+   return false;
+})
+```
+
+当我们每次调用 `return false` 时，都会执行以下三个步骤：
+
+- event.preventDefault();
+- event.stopPropagation();
+- 停止回调函数执行并立即返回。
+
+举个很简单的例子：
+
+```js
+<div class="parent">    
+<a herf="#">btn</a></div>
+<script>    
+$(".parent").click(function(e){        
+	alert('b');    
+})    
+$("a").click(function(e){        
+	e.preventDefault();        
+	alert('a');    
+})</script>
+```
+
+因为事件冒泡，当我们点击 btn 按钮时，会先跳出显示 “a” 的提示框，再跳出显示 “b” 的提示框。但是页面不会跳转，因为有 `e.preventDefault()`。
+
+如果我们将 a 的点击事件改成如下处理方式：
+
+```js
+$("a").click(function(e){  
+	alert('a');  
+	return false;
+})
+```
+
+那么将不再跳出显示内容为 “b” 的提示框，因为在 `return false` 语句中，执行了 `event.stopPropagation()` 方法。
 
 ### 18 ⽹⻚验证码是⼲嘛的，是为了解决什么安全问题
 
@@ -494,47 +577,27 @@ border-radius
 ### 19 viewport
 
 ```javascript
-<meta name="viewport" content="width=device-width, initial-scale=1.0, minimu
-// width 设置viewport宽度，为⼀个正整数，或字符串‘device-width’
-// device-width 设备宽度
-// height 设置viewport⾼度，⼀般设置了宽度，会⾃动解析出⾼度，可以不⽤设置
-// initial-scale 默认缩放⽐例（初始缩放⽐例），为⼀个数字，可以带⼩数
-// minimum-scale 允许⽤户最⼩缩放⽐例，为⼀个数字，可以带⼩数
-// maximum-scale 允许⽤户最⼤缩放⽐例，为⼀个数字，可以带⼩数
-// user-scalable 是否允许⼿动缩放
+<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+    // width    设置viewport宽度，为一个正整数，或字符串‘device-width’
+    // device-width  设备宽度
+    // height   设置viewport高度，一般设置了宽度，会自动解析出高度，可以不用设置
+    // initial-scale    默认缩放比例（初始缩放比例），为一个数字，可以带小数
+    // minimum-scale    允许用户最小缩放比例，为一个数字，可以带小数
+    // maximum-scale    允许用户最大缩放比例，为一个数字，可以带小数
+    // user-scalable    是否允许手动缩放
 ```
 
 -  移动端浏览器通常都在一个比屏幕更宽的虚拟窗口中渲染页面，这个虚拟窗口就是viewport，目的是**正常展示没有做移动端适配的网页**，可以让他们完整的展现给用户。我们有时用移动设备访问桌面版网页就会看到一个横向滚动条，这里可显示区域的宽度就是viewport的宽度。 
 - 延伸提问
   - 怎样处理 移动端 1px 被 渲染成 2px 问题
-- 局部处理
-- mate 标签中的 viewport 属性 ， initial-scale 设置为 1
-- rem 按照设计稿标准⾛，外加利⽤transfrome 的scale(0.5) 缩⼩⼀倍即可；
-- 全局处理
-  - mate 标签中的 viewport 属性 ， initial-scale 设置为 0.5
-  - rem 按照设计稿标准⾛即可
+    - 局部处理
+      - mate 标签中的 viewport 属性 ， initial-scale 设置为 1
+      - rem 按照设计稿标准⾛，外加利⽤transfrome 的scale(0.5) 缩⼩⼀倍即可；
+    - 全局处理
+      - mate 标签中的 viewport 属性 ， initial-scale 设置为 0.5
+      - rem 按照设计稿标准⾛即可
 
-### 20 渲染优化
-
-- 禁⽌使⽤iframe （阻塞⽗⽂档onload 事件）
-  - iframe 会阻塞主⻚⾯的Onload 事件
-  - 搜索引擎的检索程序⽆法解读这种⻚⾯，不利于SEO
-  - iframe 和主⻚⾯共享连接池，⽽浏览器对相同域的连接有限制，所以会影响⻚⾯的并⾏加载
-  - 使⽤iframe 之前需要考虑这两个缺点。如果需要使⽤iframe ，最好是通过javascript
-  - 动态给iframe 添加src 属性值，这样可以绕开以上两个问题
-- 禁⽌使⽤gif 图⽚实现loading 效果（降低CPU 消耗，提升渲染性能）
-- 使⽤CSS3 代码代替JS 动画（尽可能避免重绘重排以及回流）
-- 对于⼀些⼩图标，可以使⽤base64位编码，以减少⽹络请求。但不建议⼤图使⽤，⽐较耗费CPU
-  
-    - ⼩图标优势在于：减少HTTP 请求；避免⽂件跨域；修改及时⽣效
-- ⻚⾯头部的`<style></style> <script></script>` 会阻塞⻚⾯；（因为 Renderer进程中 JS 线程和渲染线程是互斥的）
-- ⻚⾯中空的 href 和 src 会阻塞⻚⾯其他资源的加载 (阻塞下载进程)
-- ⽹⻚gzip ， CDN 托管， data 缓存 ，图⽚服务器
-- 前端模板 JS+数据，减少由于HTML 标签导致的带宽浪费，前端⽤变量保存AJAX请求结果，每次操作本地变量，不⽤请求，减少请求次数
-- ⽤innerHTML 代替DOM 操作，减少DOM 操作次数，优化javascript 性能
-- 当需要设置的样式很多时设置className ⽽不是直接操作style
-  
--  少⽤全局变量、缓存DOM 节点查找的结果。减少IO 读取操作
+### 20 
 
 ### 21 浏览器的内核分别是什么?
 
@@ -595,11 +658,24 @@ dns 缓存， cdn 缓存，浏览器缓存，服务器缓存
 
 ### 29 web开发中会话跟踪的⽅法
 
-cookie
-session
-url 重写
-隐藏input
-ip 地址
+ 会话跟踪就是浏览器和服务器通信 
+
+ 浏览器与服务器之间的通信是通过HTTP协议进行通信的，而HTTP协议是”无状态”的协议，它不能保存客户的信息，即一次响应完成之后连接就断开了，下一次的请求需要重新连接，这样就需要判断是否是同一个用户，所以才应会话跟踪技术来实现这种要求 
+
+a) URL重写： 
+URL(统一资源定位符)是Web上特定页面的地址，URL地址重写的原理是**将该用户Session的id信息重写到URL地址中**，以便在服务器端进行识别不同的用户。URL重写能够在客户端停用cookies或者不支持cookies的时候仍然能够发挥作用。
+
+b) 隐藏表单域： 
+**将会话ID添加到HTML表单元素中提交到服务器**，此表单元素并不在客户端显示，浏览时看不到，源代码中有。
+
+c) Cookie： 
+Cookie是Web服务器发送给客户端的一小段信息，客户端请求时可以读取该信息发送到服务器端，进而进行用户的识别。对于客户端的每次请求，服务器都会将Cookie发送到客户端,在客户端可以进行保存,以便下次使用。 服务器创建保存于浏览器端，不可跨域名性，大小及数量有限。客户端可以采用两种方式来保存这个Cookie对象，一种方式是 保存在 客户端内存中，称为临时Cookie，浏览器关闭后 这个Cookie对象将消失。另外一种方式是保存在 客户机的磁盘上，称为永久Cookie。以后客户端只要访问该网站，就会将这个Cookie再次发送到服务器上，前提是 这个Cookie在有效期内。 这样就实现了对客户的跟踪。 
+Cookie是可以被禁止的。
+
+d) session： 
+每一个用户都有一个不同的session，各个用户之间是不能共享的，是每个用户所独享的，在session中可以存放信息。 保存在服务器端。需要解决多台服务器间共享问题。如果Session内容过于复杂，当大量客户访问服务器时可能会导致内存溢出。因此，Session里的信息应该尽量精简。 
+在服务器端会创建一个session对象，产生一个sessionID来标识这个session对象，然后将这个sessionID放入到Cookie中发送到客户端，下一次访问时，sessionID会发送到服务器，在服务器端进行识别不同的用户。 
+Session是依赖Cookie的，如果Cookie被禁用，那么session也将失效。
 
 ### 30 HTTP request报⽂结构
 
@@ -741,7 +817,7 @@ Electron 从 NodeJS 获益有2个方面，一个方面是如现代的 web 项目
 > b. 跨平台，一套代码可打包为Windows、Linux、Mac三套软件，且编译快速；
 > c. 可直接在现有Web应用上进行扩展，提供浏览器不具备的能力；
 
-### 38 判断⻚⾯是否加载完成
+### 38 Load和DOMContentLoaded
 
 Load 事件触发代表⻚⾯中的 DOM ， CSS ， JS ，图⽚已经全部加载完毕。
 DOMContentLoaded 事件触发代表初始的 HTML 被完全加载和解析，不需要等待CSS ， JS ，图⽚加载
@@ -757,7 +833,7 @@ DOMContentLoaded 事件触发代表初始的 HTML 被完全加载和解析，不
 
 本质上**充当Web应⽤程序与浏览器之间的代理服务器**，也可以**在⽹络可⽤时作为浏览器和⽹络间的代理**。它们旨在（除其他之外）使得能够创建有效的离线体验，拦截⽹络请求并基于⽹络是否可⽤以及更新的资源是否驻留在服务器上来采取适当的动作。他们还允许访问推送通知和后台同步API
 
-### 41 浏览器性能问题：重绘（Repaint）和回流（Reflow）
+### 41 重绘（Repaint）和回流（Reflow）
 
 - 重绘和回流是渲染步骤中的⼀⼩节，但是这两个步骤对于性能影响很⼤。
 - **重绘是当节点需要更改外观⽽不会影响布局的**，⽐如改变 color 就叫称为重绘
@@ -765,15 +841,18 @@ DOMContentLoaded 事件触发代表初始的 HTML 被完全加载和解析，不
 - **回流必定会发⽣重绘，重绘不⼀定会引发回流**。回流所需的成本⽐重绘⾼的多，改变深层次的节点很可能导致⽗节点的⼀系列回流。
 
 在以下情况会发生reflow：
- 1.改变窗囗大小
- 2.改变文字大小
- 3.添加/删除样式表
- 4.内容的改变，如用户在输入框中敲字(这样也会-_-||)
- 5.激活伪类，如:hover (IE里是一个兄弟结点的伪类被激活)
- 6.操作class属性
- 7.脚本操作DOM
- 8.计算offsetWidth和offsetHeight
- 9.设置style属性
+
+1. 改变窗囗大小
+2. 改变文字大小
+3. 添加/删除样式表
+4. 内容的改变，如用户在输入框中敲字(这样也会-_-||)
+5. 激活伪类，如:hover (IE里是一个兄弟结点的伪类被激活)
+6. 操作class属性
+7. 脚本操作DOM
+8. 计算offsetWidth和offsetHeight
+9. 设置style属性
+
+
 
 所以以下⼏个动作可能会导致性能问题：
 
@@ -810,10 +889,18 @@ DOMContentLoaded 事件触发代表初始的 HTML 被完全加载和解析，不
 - CSS 选择符从右往左匹配查找，避免 DOM 深度过深
 - 将频繁运⾏的动画变为图层，图层能够阻⽌该节点回流影响别的元素。⽐如对于 video标签，浏览器会⾃动将该节点变为图层。
 
-### 42 使⽤ HTTP / 2.0
+### 42 HTTP / 2.0
 
-- 因为浏览器会有并发请求限制，在 HTTP / 1.1 时代，每个请求都需要建⽴和断开，消耗了好⼏个 RTT 时间，并且由于 TCP 慢启动的原因，加载体积⼤的⽂件会需要更多的时间
-- 在 HTTP / 2.0 中引⼊了**多路复⽤**，能够让多个请求使⽤同⼀个 TCP 链接，极⼤的加快了⽹⻚的加载速度。并且还**⽀持 Header 压缩**，进⼀步的减少了请求的数据⼤⼩
+- **新的二进制格式**（Binary Format），HTTP1.x的解析是基于文本。基于文本协议的格式解析存在天然缺陷，文本的表现形式有多样性，要做到健壮性考虑的场景必然很多，二进制则不同，只认0和1的组合。基于这种考虑**HTTP2.0的协议解析决定采用二进制格式**，实现方便且健壮。
+- **多路复用**（MultiPlexing），即连接共享，即每一个request都是是用作连接共享机制的。一个request对应一个id，这样一个连接上可以有多个request，每个连接的request可以随机的混杂在一起，接收方可以根据request的 id将request再归属到各自不同的服务端请求里面。 HTTP 性能优化的关键并不在于高带宽，而是低延迟。TCP 连接会随着时间进行自我「调谐」，起初会限制连接的最大速度，如果数据成功传输，会随着时间的推移提高传输的速度。这种调谐则被称为 TCP 慢启动。由于这种原因，让原本就具有突发性和短时性的 HTTP 连接变的十分低效。HTTP/2 通过让所有数据流共用同一个连接，可以更有效地使用 TCP 连接，让高带宽也能真正的服务于 HTTP 的性能提升。 
+- **header压缩**，如上文中所言，对前面提到过HTTP1.x的header带有大量信息，而且每次都要重复发送，HTTP2.0使用encoder来减少需要传输的header大小，通讯双方各自cache一份header fields表，既避免了重复header的传输，又减小了需要传输的大小。
+- **服务端推送**（server push），同SPDY一样，HTTP2.0也具有server push功能。
+
+
+
+- 结论1：从HTTP/1.0到HTTP/2，都是利用TCP作为底层协议进行通信的。
+- 结论2：HTTP/1.1，引进了长连接(keep-alive)，减少了建立和关闭连接的消耗和延迟。
+- 结论3：HTTP/2，引入了多路复用：连接共享，提高了连接的利用率，降低延迟。
 
 ### 43 预加载，预渲染
 
@@ -926,9 +1013,9 @@ a:active{color: #0000FF}/* 选定的链接 */
  （3）、opacity:0;filter：alpha(opacity=0-100;的元素依然能触发已经绑定的事件。
  （4）、transition有效。
  4、**各种隐藏**
- { display: none; /* 不占据空间，无法点击 */ }
+ **{ display: none; /* 不占据空间，无法点击 */ }
  { visibility: hidden; /* 占据空间，无法点击 */ }
- { opacity: 0; filter:Alpha(opacity=0); /* 占据空间，可以点击 */ }
+ { opacity: 0; filter:Alpha(opacity=0); /* 占据空间，可以点击 */ }**
  { position: absolute; top: -999em; /* 不占据空间，无法点击 */ }
  { position: relative; top: -999em; /* 占据空间，无法点击 */ }
  { position: absolute; visibility: hidden; /* 不占据空间，无法点击 */ }
@@ -954,7 +1041,138 @@ a:active{color: #0000FF}/* 选定的链接 */
 Flash Of Unstyled Content ：⽤户定义样式表加载之前浏览器使⽤默认样式显示⽂档，⽤户样式加载渲染之后再从新显示⽂档，造成⻚⾯闪烁。
 解决⽅法：把样式表放到⽂档的`<head>`
 
-### 5 
+### 5 Flex Box
+
+ flexbox，是一种**一维**的布局模型。 
+
+ ![容器](/../../../../Typora图库/Web前端/flex容器.png) 
+
+从容器的角度来看，有两个不变的轴，**主轴由 flex-direction 定义，另一根轴始终垂直于它**。默认定义是：
+
+​	1) **水平方向的主轴**（main axis），主轴开始位置称为`main start`，结束位置称为 `main end`
+
+​	2) **垂直方向的交叉轴**（cross axis），交叉轴开始位置称为 `cross start`，结束位置称为 `cross end`
+
+相关属性：
+
+- flex-direction：定义了主轴方向。决定容器内项目排列方向，默认从左到右`row`。如果你选择了 `row` 或者 `row-reverse`，你的主轴将沿着 `inline`(行级)方向延伸；选择 `column` 或者 `column-reverse` 时，你的主轴会沿着上下方向延伸 — 也就是 `block`(块级) 排列的方向。
+
+  ```css
+  flex-direction：row | row-reverse | column | column-reverse
+  ```
+
+   特别注意：flex-direction设置后会引起主轴和交叉轴方向改变。 
+
+-  flex-wrap：决定容器主轴方向上项目是否换行，默认不换行`nowrap`。`reverse`表示逆序。 
+
+  ```css
+  flex-wrap: nowrap | wrap | wrap-reverse;
+  ```
+
+-  flex-flow：是`flex-direction` 和`flex-wrap`属性的简写。默认为：`row nowrap`。 
+
+  ```css
+  flex-flow: <flex-direction> || <flex-wrap>;
+  ```
+
+-  justify-content：决定容器内项目**在主轴上**对齐方式。默认左对齐 `flex-start`。 
+
+  ```css
+  justify-content: flex-start | flex-end | center | space-between | space-around;
+  /**
+  * flex-start（默认值）：左对齐。项目堆放在容器主轴开始位置(main start)；
+  * flex-end：右对齐。项目堆放在容器主轴结束位置(main end)；
+  * center： 居中。项目沿着主轴居中排列；
+  * space-between：两端对齐，项目之间的间隔都相等。
+  * space-around：每个项目两侧的间隔相等。所以，项目之间的间隔比项目与边框的间隔大一倍。
+  **/
+  ```
+
+-  align-items：决定容器内项目**在交叉轴上**对齐方式。默认为`stretch`。 
+
+  ```css
+  align-items: flex-start | flex-end | center | baseline | stretch;
+  /**
+  * flex-start：交叉轴的起点对齐。
+  * flex-end：交叉轴的终点对齐。
+  * center：交叉轴的中点对齐。
+  * baseline: 项目的第一行文字的基线对齐。
+  * stretch（默认值）：如果项目未设置高度或设为auto，将占满整个容器的高度。
+  **/
+  ```
+
+-  align-content：决定容器内项目**在交叉轴上**内容与剩余空间对齐方式。默认为 `stretch`。  特别注意：该属性只对设置了`flex-wrap:wrap`的容器生效，并且容器里的元素构成了多行。 
+
+  ```css
+  align-content: flex-start | flex-end | center | space-between | space-around | stretch;
+  /**
+  * flex-start：与交叉轴的起点对齐。
+  * flex-end：与交叉轴的终点对齐。
+  * center：与交叉轴的中点对齐。
+  * space-between：与交叉轴两端对齐，轴线之间的间隔平均分布。
+  * space-around：每根轴线两侧的间隔都相等。所以，轴线之间的间隔比轴线与边框的间隔大一倍。
+  * stretch（默认值）：轴线占满整个交叉轴。
+  **/
+  ```
+
+ 项目默认沿主轴排列。单个项目占据的主轴空间叫做`main size`，占据的交叉轴空间叫做`cross size`。 
+
+相关属性：
+
+-  order：定义项目在容器**主轴方向上的**排列顺序，数值越小排列越靠前。默认为 0 。 
+
+  ```css
+  order: <integer>;
+  ```
+
+- flex-grow：定义项目基于 `flex-basis` 放大比例，默认为 0 ，即便容器存在剩余空间，也不放大。不允许负值。 **剩余空间**：元素占据完容器空间后的布局空白 
+
+  ```css
+  flex-grow: <number>; /* default 0 */
+  /**
+  * 如果所有项目的flex-grow属性都为1，则它们将等分剩余空间（如果有的话）。
+  * 如果一个项目的flex-grow属性为2，其他项目都为1，则前者占据的剩余空间将比其他项多一倍。
+  **/
+  ```
+
+-  flex-shrink：定义项目在容器空间不足时的基于 `flex-basis` 缩小比例，默认为1，不允许负值。容器空间不足时该项目要缩小，并且项目内容会换行。只有在flex元素总和超出主轴才会生效。 
+
+  ```css
+  flex-shrink: <number>; /* default 1 */
+  /**
+  * 如果所有项目的flex-shrink属性都为1，当空间不足时，都将等比例缩小。项目缩小内容换行。
+  * 如果一个项目的flex-shrink属性为0，其他项目都为1，则空间不足时，前者不缩小。不换行，即使容器设置了wrap内容过长时也会溢出
+  **/
+  ```
+
+-  flex-basis：可以理解成设置项目默认大小。定义项目分配多余空间之前，**在主轴上**占据的空间。默认为auto，即项目内容大小。 
+
+  ```css
+   flex-basis: <length> | auto; /* default auto */
+  ```
+
+   如果容器内所有项目大小总和超过容器，不设置 wrap 的情况下会溢出容器： 
+
+-  flex：是`flex-grow`, `flex-shrink` 和 `flex-basis`的简写，默认值为`0 1 auto`。后两个属性可选。 
+
+  ```css
+  flex: none | [ <'flex-grow'> <'flex-shrink'>? || <'flex-basis'> ]
+  ```
+
+  flex 有几种预定义的值：
+
+  - `flex: initial`     是把flex元素重置为Flexbox的初始值，它相当于 flex: 0 1 auto。
+  - `flex: auto`        等同于 flex: 1 1 auto,表明元素既可以拉伸也可以收缩。
+  - `flex: none`       可以把flex元素设置为不可伸缩。它和设置为 flex: 0 0 auto 是一样的。
+  - `flex: ` 常看到的 flex: 1 或者 flex: 2 等等。它相当于flex: 1 1 0或 flex:2 2 0。元素可以在以 flex-basis为0的基础上伸缩。 **建议优先使用这个属性，而不是单独写三个分离的属性，因为浏览器会推算相关值。**
+
+-  align-self：用于设置单个项目**在交叉轴上**对齐方式，可覆盖容器的 `align-items`属性，默认为 `auto`。如果值为`auto`，则计算值为父元素的 ' align-items（ 定义flex子项在flex容器的当前行的侧轴（纵轴）方向上的对齐方式 ）' 值，否则为指定值。 
+
+  ```css
+  align-self: auto | flex-start | flex-end | center | baseline | stretch;
+  ```
+
+  如果容器设置了`align-self:center`，但target设置了`align-self`，target按照`align-self`设置
 
 ### 6 display、float、position的关系
 
@@ -1105,13 +1323,25 @@ PNG
 
 偶数字号相对更容易和 web 设计的其他部分构成⽐例关系
 
-### 19 ::before 和 :after中双冒号和单冒号有什么区别？伪类和伪元素的区别
+### 19 伪类、伪元素
 
-单冒号( : )⽤于CSS3 伪类，双冒号( :: )⽤于CSS3 伪元素
+ <img src="/../../../../Typora图库/Web前端/伪类.png" alt="CSS2及CSS3伪类区分" style="zoom: 67%;" />  <img src="/../../../../Typora图库/Web前端/伪元素.png" alt="CSS3伪元素单双冒号区分" style="zoom: 67%;" /> 
+
+ 伪类元素使用了两个冒号 (::) 而不是一个冒号 (:)，这是 CSS3 规范中的一部分要求，目的是为了区分伪类和伪元素 。单冒号( : )⽤于CSS3 伪类，双冒号( :: )⽤于CSS3 伪元素
+
+ 对于 CSS2 中已经有的伪元素，例如 :before，单冒号和双冒号的写法 ::before 作用是一样的。 
 
 - 伪类表状态
 - 伪元素是真的有元素
 - 前者单冒号，后者双冒号
+
+**哪些标签不支持伪元素？**
+
+伪元素虽然强大，但是还是有一些特定的标签是不支持伪元素 before 和 after 的。
+
+诸如 `<img> 、<input>、<iframe>`，这几个标签是不支持类似 img::before 这样使用。
+
+究其原因，要想要标签支持伪元素，需要这个元素是要可以插入内容的，也就是说这个元素要是一个容器。而 input，img，iframe 等元素都不能包含其他元素，所以不能通过伪元素插入内容。
 
 ### 20 如果需要⼿动写动画，你认为最⼩时间间隔是多久，为什么？
 
@@ -1551,7 +1781,7 @@ inherit 规定从⽗元素继承 position 属性的值
 
 ### 1 闭包 / setTimeout
 
-- 闭包就是**能够读取其他函数内部变量的函数**
+- 闭包就是**能够读取其他函数内部变量的函数**，或者子函数在外调用，子函数所在的父函数的作用域不会被释放。 
 
 - 闭包是指有权访问另⼀个函数作⽤域中变量的函数，创建闭包的最常⻅的⽅式就是在⼀个函数内创建另⼀个函数，通过另⼀个函数访问这个函数的局部变量,利⽤闭包可以突破作⽤链域
 
@@ -1646,11 +1876,24 @@ for ( let i=1; i<=5; i++) {
 - 特点：JavaScript 对象是**通过引⽤来传递的**，我们创建的每个新对象实体中并没有⼀份属于⾃⼰的原型副本。当我们修改原型时，与之相关的对象也会继承这⼀改变（复制需要深拷贝）
 - 当我们需要⼀个属性的时， Javascript 引擎会先看当前对象中是否有这个属性， 如果没有的就会查找他的Prototype 对象是否有这个属性，如此递推下去，⼀直检索到 Object 内建对象
 
-<img src="/../../../../Typora图库/Web前端/原型.png" alt="1598172397035" style="zoom:50%;" />
+![2018-07-10 2 38 27](/../../../../Typora图库/Web前端/原型.png) 
 
 - 每个函数都有 prototype 属性，除了 Function.prototype.bind() ，该属性指向原型。
 - 每个对象都有 __proto__ 属性，指向了创建该对象的构造函数的原型。其实这个属性指向了 [[prototype]] ，但是 [[prototype]] 是内部属性，我们并不能访问到，所以使⽤ _proto_ 来访问。
 - 对象可以通过__proto__ 来寻找不属于该对象的属性， __proto__ 将对象连接起来组成了原型链
+
+#### `Function._proto_(getPrototypeOf)`是什么？
+
+获取一个对象的原型，在chrome中可以通过__proto__的形式，或者在ES6中可以通过Object.getPrototypeOf的形式。
+
+那么Function.proto是什么么？也就是说Function由什么对象继承而来，我们来做如下判别。
+
+```js
+Function.__proto__ == Object.prototype //false
+Function.__proto__ == Function.prototype//true
+```
+
+我们发现**Function的原型也是Function**。
 
 ### 4 执⾏上下⽂
 
@@ -1770,12 +2013,128 @@ specialObject.foo = foo; // {DontDelete}, {ReadOnly}
 delete Scope[0]; // remove specialObject from the front of scope chain
 ```
 
-### 5 Javascript如何实现继承
+### 5 Javascript如何实现继承(object.create)
 
 1. 构造继承
 2. 原型继承
 3. 实例继承
 4. 拷⻉继承
+5. 组合继承
+6. 寄生组合继承
+
+（1）类的创建（es5）：new一个function，在这个function的prototype里面增加属性和方法。
+
+下面来创建一个Animal类：
+
+```js
+// 定义一个动物类
+function Animal (name) {
+  // 属性
+  this.name = name || 'Animal';
+  // 实例方法
+  this.sleep = function(){
+    console.log(this.name + '正在睡觉！');
+  }
+}
+// 原型方法
+Animal.prototype.eat = function(food) {
+  console.log(this.name + '正在吃：' + food);
+};
+```
+
+这样就生成了一个Animal类，实力化生成对象后，有方法和属性。
+
+（2）类的继承——原型链继承
+
+```js
+--原型链继承
+function Cat(){ }
+Cat.prototype = new Animal();
+Cat.prototype.name = 'cat';
+//&emsp;Test Code
+var cat = new Cat();
+console.log(cat.name);
+console.log(cat.eat('fish'));
+console.log(cat.sleep());
+console.log(cat instanceof Animal); //true 
+console.log(cat instanceof Cat); //true
+```
+
+- 介绍：在这里我们可以看到new了一个空对象,这个空对象指向Animal并且Cat.prototype指向了这个空对象，这种就是基于原型链的继承。
+- 特点：基于原型链，既是父类的实例，也是子类的实例
+- 缺点：无法实现多继承
+
+（3）构造继承：使用父类的构造函数来增强子类实例，等于是复制父类的实例属性给子类（没用到原型）
+
+```js
+function Cat(name){
+  Animal.call(this);
+  this.name = name || 'Tom';
+}
+// Test Code
+var cat = new Cat();
+console.log(cat.name);
+console.log(cat.sleep());
+console.log(cat instanceof Animal); // false
+console.log(cat instanceof Cat); // true
+```
+
+- 特点：可以实现多继承
+- 缺点：只能继承父类实例的属性和方法，不能继承原型上的属性和方法。
+
+（4）实例继承和拷贝继承
+
+实例继承：为父类实例添加新特性，作为子类实例返回
+
+拷贝继承：拷贝父类元素上的属性和方法
+
+上述两个实用性不强，不一一举例。
+
+（5）组合继承：相当于构造继承和原型链继承的组合体。通过调用父类构造，继承父类的属性并保留传参的优点，然后通过将父类实例作为子类原型，实现函数复用
+
+```js
+function Cat(name){
+  Animal.call(this);
+  this.name = name || 'Tom';
+}
+Cat.prototype = new Animal();
+Cat.prototype.constructor = Cat;
+// Test Code
+var cat = new Cat();
+console.log(cat.name);
+console.log(cat.sleep());
+console.log(cat instanceof Animal); // true
+console.log(cat instanceof Cat); // true
+```
+
+- 特点：可以继承实例属性/方法，也可以继承原型属性/方法
+- 缺点：调用了两次父类构造函数，生成了两份实例
+
+（6）寄生组合继承：通过寄生方式，砍掉父类的实例属性，这样，在调用两次父类的构造的时候，就不会初始化两次实例方法/属性
+
+```js
+function Cat(name){
+  Animal.call(this);
+  this.name = name || 'Tom';
+}
+(function(){
+  // 创建一个没有实例方法的类
+  var Super = function(){};
+  Super.prototype = Animal.prototype;
+  //将实例作为子类的原型
+  Cat.prototype = new Super();
+})();
+// Test Code
+var cat = new Cat();
+console.log(cat.name);
+console.log(cat.sleep());
+console.log(cat instanceof Animal); // true
+console.log(cat instanceof Cat); //true
+```
+
+- 较为推荐
+
+
 
 原型prototype 机制或apply 和call ⽅法去实现较简单，建议使⽤**构造函数与原型混合⽅式**
 
@@ -1795,20 +2154,25 @@ alert(demo.name);//得到被继承的属性
 在 ES5 中，我们可以使⽤如下⽅式解决继承的问题
 
 ```js
-function Super() {}
-Super.prototype.getNumber = function() {
-	return 1
+function person(name){
+  this.name=name;
+  this.className="person"
 }
-function Sub() {}
-let s = new Sub()
-Sub.prototype = Object.create(Super.prototype, {
-	constructor: {
-		value: Sub,
-		enumerable: false,
-		writable: true,
-		configurable: true
-	}
-})
+person.prototype.getName=function(){
+   console.log(this.name)
+}
+
+function man(name){
+   person.apply(this,arguments)
+}
+man.prototype = Object.create(person.prototype);
+
+var man1=new man("Davin");
+console.log(man1.name);      //Davin
+console.log(man1.getName());     //Davin
+  //constructor 属性返回对创建此对象的数组函数的引用。
+console.log(person.prototype.constructor); //function person(name){... }
+console.log(man.prototype.constructor); //function person(name){... }
 ```
 
 以上继承实现思路就是将⼦类的原型设置为⽗类的原型
@@ -2074,26 +2438,19 @@ Function.prototype.bind = function(ctx) {
   </script>
   ```
 
-### 8 new操作符具体⼲了什么呢?
+### 8 拖拽功能的实现
 
-- 创建⼀个空对象，并且 this 变量引⽤该对象，同时还继承了该函数的原型
-- 属性和⽅法被加⼊到 this 引⽤的对象中
-- 新创建的对象由 this 所引⽤，并且最后隐式的返回 this
+首先是三个事件，分别是**mousedown，mousemove，mouseup** 当鼠标点击按下的时候，需要一个tag标识此时已经按下，可以执行mousemove里面的具体方法。
 
-```js
-function create() {
-	// 创建⼀个空的对象
-	let obj = new Object()
-	// 获得构造函数
-	let Con = [].shift.call(arguments)
-	// 链接到原型
-	obj.__proto__ = Con.prototype
-	// 绑定 this，执⾏构造函数
-	let result = Con.apply(obj, arguments)
-	// 确保 new 出来的是个对象
-	return typeof result === 'object' ? result : obj
-}
-```
+clientX，clientY标识的是鼠标的坐标，分别标识横坐标和纵坐标，并且我们用offsetX和offsetY来表示元素的元素的初始坐标，移动的举例应该是：
+
+**鼠标移动时候的坐标-鼠标按下去时候的坐标。**
+
+也就是说定位信息为：
+
+鼠标移动时候的坐标-鼠标按下去时候的坐标+元素初始情况下的offetLeft.
+
+还有一点也是原理性的东西，也就是拖拽的同时是绝对定位，**我们改变的是绝对定位条件下的left 以及top**等等值。
 
 ### 9 Ajax原理
 
@@ -3011,18 +3368,220 @@ var x = (y >= 0 ? y : -y);
 
  ![img](/../../../../Typora图库/Web前端/表达式和语句.png) 
 
-### 36 
+### 36 mouseover和mouseenter的区别
 
-### 37 
+mouseenter：当鼠标移入某元素时触发。
+
+mouseleave：当鼠标移出某元素时触发。
+
+mouseover：当鼠标移入某元素时触发，移入和移出其子元素时也会触发。
+
+mouseout：当鼠标移出某元素时触发，移入和移出其子元素时也会触发。
+
+mousemove：鼠标在某元素上移动时触发，即使在其子元素上也会触发。
+
+mouseout、mouseover和mouseleave、mouseenter最大的区别，在于**子元素连带触发**。
+
+ 当绑定着两个事件的元素里面没有子元素的时候，这两个事件的触发效果是一致的。  当绑定事件的元素里面有子元素的时候，鼠标经过绑定mouseover的当前元素以及它里面的子元素的时候，都会触发，而经过绑定mouseenter的元素时，只会在鼠标刚进入的时候触发，当进入其子元素的时候，是不会再触发的了。 
+
+**总结两句话**
+
+- 不论鼠标指针穿过被选元素或其子元素，都会触发 mouseover 事件。对应mouseout
+- 只有在鼠标指针穿过被选元素时，才会触发 mouseenter 事件。对应mouseleave
+
+### 37 用setTimeout来实现setInterval
+
+setInterval的缺陷:
+
+首先来看setInterval的缺陷，使用setInterval()创建的定时器**确保了定时器代码规则地插入队列中**。这个问题在于：**如果定时器代码在代码再次添加到队列之前还没完成执行，结果就会导致定时器代码连续运行好几次。而之间没有间隔**。不过幸运的是：javascript引擎足够聪明，能够避免这个问题。当且仅当没有该定时器的实例时，才会将定时器代码添加到队列中。这确保了定时器代码加入队列中最小的时间间隔为指定时间。
+
+这种重复定时器的规则有两个问题：***1.某些间隔会被跳过 2.多个定时器的代码执行时间可能会比预期小。\***
+
+**用setTimeout来实现setInterval**
+
+```js
+let timeMap = {}
+let id = 0 // 简单实现id唯一
+const mySetInterval = (cb, time) => {
+  let timeId = id // 将timeId赋予id
+  id++ // id 自增实现唯一id
+  let fn = () => {
+    cb()
+    timeMap[timeId] = setTimeout(() => {
+      fn()
+    }, time)
+  }
+  timeMap[timeId] = setTimeout(fn, time)
+  return timeId // 返回timeId
+}
+
+const myClearInterval = (id) => {
+  clearTimeout(timeMap[id]) // 通过timeMap[id]获取真正的id
+  delete timeMap[id]
+}
+```
+
+
 
 ### 38 map与forEach的区别
 
 - forEach ⽅法，是最基本的⽅法，就是遍历与循环，默认有3个传参：分别是遍历的数组内容item 、数组索引index 、和当前遍历数组Array
 - map ⽅法，基本⽤法与forEach ⼀致，但是不同的，**它会返回⼀个新的数组**，所以在callback需要有return 值，如果没有，会返回undefined
 
-### 39 
+### 39 Object.create()、new Object()和{}的区别
 
-### 40 
+直接字面量创建
+
+```js
+var objA = {};
+objA.name = 'a';
+objA.sayName = function() {
+    console.log(`My name is ${this.name} !`);
+}
+// var objA = {
+//     name: 'a',
+//     sayName: function() {
+//         console.log(`My name is ${this.name} !`);
+//     }
+// }
+objA.sayName();
+console.log(objA.__proto__ === Object.prototype); // true
+console.log(objA instanceof Object); // true
+```
+
+new关键字创建
+
+```js
+var objB = new Object();
+// var objB = Object();
+objB.name = 'b';
+objB.sayName = function() {
+    console.log(`My name is ${this.name} !`);
+}
+objB.sayName();
+console.log(objB.__proto__ === Object.prototype); // true
+console.log(objB instanceof Object); // true
+```
+
+ **new绑定**时`new`操作符其实做了以下四步： 
+
+- 创建⼀个空对象，并且 this 变量引⽤该对象
+- 继承了该函数的原型
+- 属性和⽅法被加⼊到 this 引⽤的对象中
+- 新创建的对象由 this 所引⽤，并且最后隐式的返回 this
+
+```js
+var obj = new Object(); // 创建一个空对象
+obj.__proto__ = F.prototype; // obj的__proto__指向构造函数的prototype
+var result = F.call(obj); // 把构造函数的this指向obj，并执行构造函数把结果赋值给result
+if (typeof(result) === 'object') {
+    objB = result; // 构造函数F的执行结果是引用类型，就把这个引用类型的对象返回给objB
+} else {
+    objB = obj; // 构造函数F的执行结果是值类型，就返回obj这个空对象给objB
+}
+```
+
+ 这样一比较，其实字面量创建和new关键字创建并没有区别，创建的新对象的`__proto__`都指向`Object.prototype`，只是字面量创建更高效一些，少了`__proto__`指向赋值和`this`。 
+
+**Object.create()**
+
+ `Object.create()`方法创建一个新对象，使用现有的对象来提供新创建的对象的`__proto__`。 
+
+```js
+const person = {
+  isHuman: false,
+  printIntroduction: function () {
+    console.log(`My name is ${this.name}. Am I human? ${this.isHuman}`);
+  }
+};
+const me = Object.create(person); // me.__proto__ === person
+me.name = "Matthew"; // name属性被设置在新对象me上，而不是现有对象person上
+me.isHuman = true; // 继承的属性可以被重写
+me.printIntroduction(); // My name is Matthew. Am I human? true
+```
+
+Object.create(proto[, propertiesObject])
+
+- `proto`必填参数，是新对象的原型对象，如上面代码里新对象`me`的`__proto__`指向`person`。注意，如果这个参数是`null`，那新对象就彻彻底底是个空对象，没有继承`Object.prototype`上的任何属性和方法，如`hasOwnProperty()、toString()`等。
+
+  ```js
+  var a = Object.create(null);
+  console.dir(a); // {}
+  console.log(a.__proto__); // undefined
+  console.log(a.__proto__ === Object.prototype); // false
+  console.log(a instanceof Object); // false 没有继承`Object.prototype`上的任何属性和方法，所以原型链上不会出现Object
+  ```
+
+- `propertiesObject`是可选参数，指定要添加到新对象上的可枚举的属性（即其自定义的属性和方法，可用`hasOwnProperty()`获取的，而不是原型对象上的）的描述符及相应的属性名称。
+
+  ```js
+  var bb = Object.create(null, {
+      a: {
+          value: 2,
+          writable: true,
+          configurable: true
+      }
+  });
+  console.dir(bb); // {a: 2}
+  console.log(bb.__proto__); // undefined
+  console.log(bb.__proto__ === Object.prototype); // false
+  console.log(bb instanceof Object); // false 没有继承`Object.prototype`上的任何属性和方法，所以原型链上不会出现Object
+  
+  // ----------------------------------------------------------
+  
+  var cc = Object.create({b: 1}, {
+      a: {
+          value: 3,
+          writable: true,
+          configurable: true
+      }
+  });
+  console.log(cc); // {a: 3}
+  console.log(cc.hasOwnProperty('a'), cc.hasOwnProperty('b')); // true false 说明第二个参数设置的是新对象自身可枚举的属性
+  console.log(cc.__proto__); // {b: 1} 新对象cc的__proto__指向{b: 1}
+  console.log(cc.__proto__ === Object.protorype); // false
+  console.log(cc instanceof Object); // true cc是对象，原型链上肯定会出现Object
+  ```
+
+ `Object.create()`创建的对象的原型指向传入的对象。跟字面量和`new`关键字创建有区别。 
+
+**总结**
+
+- 字面量和`new`关键字创建的对象是`Object`的实例，原型指向`Object.prototype`，继承内置对象`Object`
+- `Object.create(arg, pro)`创建的对象的原型取决于`arg`，`arg`为`null`，新对象是空对象，没有原型，不继承任何对象；`arg`为指定对象，新对象的原型指向指定对象，继承指定对象
+
+
+
+
+### 40 js怎么控制一次加载一张图片，加载完后再加载下一张
+
+1. ```js
+   <script type="text/javascript">
+   var obj=new Image();
+   obj.src="http://www.phpernote.com/uploadfiles/editor/201107240502201179.jpg";
+   obj.onload=function(){
+   alert('图片的宽度为：'+obj.width+'；图片的高度为：'+obj.height);
+   document.getElementById("mypic").innnerHTML="<img src='"+this.src+"' />";
+   }
+   </script>
+   <div id="mypic">onloading……</div>
+   ```
+
+2. ```js
+   <script type="text/javascript">
+   var obj=new Image();
+   obj.src="http://www.phpernote.com/uploadfiles/editor/201107240502201179.jpg";
+   obj.onreadystatechange=function(){
+   if(this.readyState=="complete"){
+   alert('图片的宽度为：'+obj.width+'；图片的高度为：'+obj.height);
+   document.getElementById("mypic").innnerHTML="<img src='"+this.src+"' />";
+   }
+   }
+   </script>
+   <div id="mypic">onloading……</div>
+   ```
+
+   
 
 ### 41 异步编程的实现⽅式
 
@@ -3705,11 +4264,69 @@ JSON.stringify(obj)==JSON.stringify(obj3);//false
 把样式表放在link 中
 把JavaScript 放在⻚⾯底部
 
-### 57 
+### 57 如何实现sleep的效果
+
+(1)while循环的方式
+
+```js
+function sleep(ms){
+   var start=Date.now(),expire=start+ms;
+   while(Date.now()<expire);
+   console.log('1111');
+   return;
+}
+```
+
+执行sleep(1000)之后，休眠了1000ms之后输出了1111。上述循环的方式缺点很明显，容易造成死循环。
+
+(2)通过promise来实现
+
+```js
+function sleep(ms){
+  var temple=new Promise(
+  (resolve)=>{
+  console.log(111);setTimeout(resolve,ms)
+  });
+  return temple
+}
+sleep(500).then(function(){
+   //console.log(222)
+})
+//先输出了111，延迟500ms后输出222
+```
+
+(3)通过async封装
+
+```js
+function sleep(ms){
+  return new Promise((resolve)=>setTimeout(resolve,ms));
+}
+async function test(){
+  var temple=await sleep(1000);
+  console.log(1111)
+  return temple
+}
+test();
+//延迟1000ms输出了1111
+```
+
+(4).通过generate来实现
+
+```js
+function* sleep(ms){
+   yield new Promise(function(resolve,reject){
+             console.log(111);
+             setTimeout(resolve,ms);
+        })  
+}
+sleep(500).next().value.then(function(){console.log(2222)})
+```
+
+
 
 ### 58 防抖/节流
 
-**防抖： 在事件被触发n秒后再执行回调，如果在这n秒内又被触发，则重新计时。** 
+**防抖： 在事件被触发n秒后再执行回调，如果在这n秒内又被触发，则重新计时。** 返回函数连续调⽤时，空闲时间必须⼤于或等于 wait，func 才会执⾏
 
 ```javascript
 /**
@@ -3882,8 +4499,6 @@ var b = 'Hello world'
 
 ### 61 事件循环 Eventloop（宏任务，微任务）
 
-**Eventloop**
-
 ⾸先， js 是单线程的，主要的任务是处理⽤户的交互，⽽⽤户的交互⽆⾮就是响应DOM 的增删改，使⽤事件队列的形式，⼀次事件循环只处理⼀个事件响应，使得脚本执⾏相对连续，所以有了**事件队列，⽤来储存待执⾏的事件**，那么事件队列的事件从哪⾥被push 进来的呢。那就是另外⼀个线程叫**事件触发线程**做的事情了，他的作⽤主要是**在定时触发器线程、异步HTTP 请求线程满⾜特定条件下的回调函数push 到事件队列中，等待js 引擎空闲的时候去执⾏**，当然js引擎执⾏过程中有优先级之分，⾸先js引擎在⼀次事件循环中，会先执⾏js线程的主任务，然后会去查找是否有微任务microtask，如果有那就优先执⾏微任务，如果没有，在去查找宏任务macrotask进⾏执⾏
 
 **微任务包括 process.nextTick ， promise ， Object.observe ，MutationObserver**
@@ -3893,27 +4508,94 @@ var b = 'Hello world'
 
 所以正确的⼀次 Event loop 顺序是这样的
 
-- 执⾏同步代码，这属于宏任务
-- 执⾏栈为空，查询是否有微任务需要执⾏
-- 执⾏所有微任务
-- 必要的话渲染 UI
-- 然后开始下⼀轮 Event loop ，执⾏宏任务中的异步代码
+- 执行一个宏任务，如果执行栈中没有就从任务队列中获取
+- 执行过程中如果产生微任务，就加他添加到微任务队列中
+- 宏任务执行完毕之后，立即依次执行微任务队列中的所有微任务
+- 当前宏任务执行完毕之后，开始检查渲染，然后GUI线程接管渲染
+- 渲染完毕之后，JS线程继续接管，开始下一个宏任务（从事件队列中获取）
 
 通过上述的 Event loop 顺序可知，如果宏任务中的异步代码有⼤量的计算并且需要操作 DOM 的话，为了更快的 界⾯响应，我们可以把操作 DOM 放⼊微任务中
 
-**Node的应⽤场景**
+**1.Promise/then、catch中的任务怎么执行**
 
-- 特点：
-  1、它是⼀个Javascript 运⾏环境
-  2、依赖于Chrome V8 引擎进⾏代码解释
-  3、事件驱动
-  4、⾮阻塞I/O
-  5、单进程，单线程
-- 优点：
-  ⾼并发（最重要的优点）
-- 缺点：
-  1、只⽀持单核CPU ，不能充分利⽤CPU
-  2、可靠性低，⼀旦代码某个环节崩溃，整个系统都崩溃
+Promise中的异步体现在`then`和`catch`中，`then`和`catch`中的代码一定要等Promise中的代码执行完才能执行，而不是并发执行
+
+因此，**写在Promise的代码是被当做同步任务来执行的**，在主线程的执行栈中，一旦轮到它执行了就会立即执行
+
+而`then`和`catch`中代码会被加入到微任务队列中，等同步任务全部执行完，才会被加入执行栈中执行。
+
+需要注意的是，**`then`和`catch`中代码是被加入到微任务队列中**的而不是任务队列，不要受“主线程之外，事件触发线程管理着一个任务队列，只要异步任务（如定时器，http请求）出现，就会在任务队列中放置一个事件”这句话的影响，这句话所说的异步任务指的是浏览器渲染进程新开的线程来执行的异步任务。
+
+**2.async/await中的任务怎么执行**
+
+async/await与Promise的作用相同，async/await 本身就是promise+generator的语法糖。
+
+**async中的代码是被当做同步任务来执行的**，在主线程的执行栈中，一旦轮到它执行了就会立即执行。
+
+await实际上是一个让出线程的标志，await后面的表达式会先执行一遍，**将await后面的代码加入到微任务队列中**，然后就会跳出整个async函数来执行后面的代码。
+
+**3.setTimeout中的任务怎么执行**
+
+JS引擎线程在在解析JS代码时，遇到setTimeout，浏览器渲染进程会新开一个线程定时器触发线程，此时，setTimeout中的回调函数将加入任务队列里面，等主线程执行栈中上一个宏任务执行完毕，在下一轮事件循环时回调函数才从任务队列中被添加到执行栈中执行
+
+**4.分析例子**
+
+```js
+//请写出输出内容
+async function async1() {
+    console.log('async1 start');
+    await async2();
+    console.log('async1 end');
+}
+async function async2() {
+	console.log('async2');
+}
+
+console.log('script start');
+
+setTimeout(function() {
+    console.log('setTimeout');
+}, 0)
+
+async1();
+
+new Promise(function(resolve) {
+    console.log('promise1');
+    resolve();
+}).then(function() {
+    console.log('promise2');
+});
+console.log('script end');
+
+/*
+script start
+async1 start
+async2
+promise1
+script end
+async1 end
+promise2
+setTimeout
+*/
+```
+
+- 上面是一段JS代码，JS引擎线程开始解析，这时，宏任务队列中只有一个script(整体代码)任务
+
+- 然后我们看到首先定义了两个async函数，接着往下看，然后遇到了 `console` 语句，直接输出 `script start`。输出之后，script 任务继续往下执行，遇到 `setTimeout`，其作为一个宏任务源，则会先将其任务分发到对应的队列中
+
+- script 任务继续往下执行，执行了async1()函数，前面讲过async函数中在await之前的代码是立即执行的，所以会立即输出`async1 start`。
+
+  遇到了await时，会将await后面的表达式执行一遍，所以就紧接着输出`async2`，然后将await后面的代码也就是`console.log('async1 end')`加入到microtask中的Promise队列中，接着跳出async1函数来执行后面的代码。
+
+- script任务继续往下执行，遇到Promise实例。由于Promise中的函数是立即执行的，而后续的 `.then` 则会被分发到 microtask 的 `Promise` 队列中去。所以会先输出 `promise1`，然后执行 `resolve`，将 `promise2` 分配到对应队列。
+
+- script任务继续往下执行，最后只有一句输出了 `script end`，至此，全局任务就执行完毕了。
+
+  根据上述，每次执行完一个宏任务之后，会去检查是否存在 Microtasks；如果有，则执行 Microtasks 直至清空 Microtask Queue。
+
+- 在script任务执行完毕之后，开始查找清空微任务队列。此时，微任务中， `Promise` 队列有的两个任务`async1 end`和`promise2`，因此按先后顺序输出 `async1 end，promise2`。当所有的 Microtasks 执行完毕之后，表示第一轮的循环就结束了。
+
+- 第二轮循环依旧从宏任务队列开始。此时宏任务中只有一个 `setTimeout`，取出直接输出即可，至此整个流程结束。
 
 ### 62 消息队列
 
@@ -4149,7 +4831,196 @@ try {
 - fetch 不⽀持abort ，不⽀持超时控制，使⽤setTimeout 及Promise.reject 的实现的超时控制并不能阻⽌请求过程继续在后台运⾏，造成了量的浪费
 - fetch 没有办法原⽣监测请求的进度，⽽XHR可以
 
-### 66 
+### 66 实现js中所有对象的深度克隆
+
+ 在要实现一个深克隆之前我们需要了解一下javascript中的基础类型. 
+
+> JavaScript原始类型:Undefined、Null、Boolean、Number、String、Symbol
+
+> JavaScript引用类型:Object
+
+**浅克隆**
+
+  **浅克隆**之所以被称为**浅克隆**，是因为对象只会被克隆最外部的一层,至于更深层的对象,则依然是通过引用指向同一块堆内存.
+
+```js
+// 浅克隆函数
+function shallowClone(o) {
+  const obj = {};
+  for ( let i in o) {
+    obj[i] = o[i];
+  }
+  return obj;
+}
+// 被克隆对象
+const oldObj = {
+  a: 1,
+  b: [ 'e', 'f', 'g' ],
+  c: { h: { i: 2 } }
+};
+
+const newObj = shallowClone(oldObj);
+console.log(newObj.c.h, oldObj.c.h); // { i: 2 } { i: 2 }
+console.log(oldObj.c.h === newObj.c.h); // true
+```
+
+ 我们可以看到,很明显虽然`oldObj.c.h`被克隆了,但是它还与`oldObj.c.h`相等,这表明他们依然指向同一段堆内存,这就造成了如果对`newObj.c.h`进行修改,也会影响`oldObj.c.h`,这就不是一版好的克隆. 
+
+ 有一个新的api`Object.assign()`也可以实现浅复制,但是效果跟上面没有差别,所以我们不再细说了. 
+
+**深克隆**
+
+1. JSON.parse方法： JSON对象parse方法可以将JSON字符串反序列化成JS对象，stringify方法可以将JS对象序列化成JSON字符串,这两个方法结合起来就能产生一个便捷的深克隆. 
+
+   ```js
+   const newObj = JSON.parse(JSON.stringify(oldObj));
+   ```
+
+   确实,这个方法虽然可以解决绝大部分是使用场景,但是却有很多坑.
+
+   > 1.他无法实现对函数 、RegExp等特殊对象的克隆
+
+   > 2.会抛弃对象的constructor,所有的构造函数会指向Object
+
+   > 3.对象有循环引用,会报错
+
+    主要的坑就是以上几点,我们一一测试下. 
+
+   ```js
+   // 构造函数
+   function person(pname) {
+     this.name = pname;
+   }
+   
+   const Messi = new person('Messi');
+   
+   // 函数
+   function say() {
+     console.log('hi');
+   };
+   
+   const oldObj = {
+     a: say,
+     b: new Array(1),
+     c: new RegExp('ab+c', 'i'),
+     d: Messi
+   };
+   
+   const newObj = JSON.parse(JSON.stringify(oldObj));
+   
+   // 无法复制函数
+   console.log(newObj.a, oldObj.a); // undefined [Function: say]
+   // 稀疏数组复制错误
+   console.log(newObj.b[0], oldObj.b[0]); // null undefined
+   // 无法复制正则对象
+   console.log(newObj.c, oldObj.c); // {} /ab+c/i
+   // 构造函数指向错误
+   console.log(newObj.d.constructor, oldObj.d.constructor); // [Function: Object] [Function: person]
+   
+   const oldObj = {};
+   
+   oldObj.a = oldObj;
+   
+   const newObj = JSON.parse(JSON.stringify(oldObj));
+   console.log(newObj.a, oldObj.a); // TypeError: Converting circular structure to JSON
+   //对象的循环引用会抛出错误.
+   ```
+
+   
+
+2. 构造一个深克隆函数
+
+    由于要面对不同的对象(正则、数组、Date等)要采用不同的处理方式，我们需要实现一个对象类型判断函数。  这样我们就可以对特殊对象进行类型判断了,从而采用针对性的克隆策略. 
+
+   ```js
+   /**
+   * deep clone
+   * @param  {[type]} parent object 需要进行克隆的对象
+   * @return {[type]}        深克隆后的对象
+   */
+   const clone = parent => {
+     // 维护两个储存循环引用的数组
+     const parents = [];
+     const children = [];
+   
+     const _clone = parent => {
+       if (parent === null) return null;
+       if (typeof parent !== 'object') return parent;
+   
+       let child, proto;
+   
+       if (isType(parent, 'Array')) {
+         // 对数组做特殊处理
+         child = [];
+       } else if (isType(parent, 'RegExp')) {
+         // 对正则对象做特殊处理
+         child = new RegExp(parent.source, getRegExp(parent));
+         if (parent.lastIndex) child.lastIndex = parent.lastIndex;
+       } else if (isType(parent, 'Date')) {
+         // 对Date对象做特殊处理
+         child = new Date(parent.getTime());
+       } else {
+         // 处理对象原型
+         proto = Object.getPrototypeOf(parent);
+         // 利用Object.create切断原型链
+         child = Object.create(proto);
+       }
+   
+       // 处理循环引用
+       const index = parents.indexOf(parent);
+   
+       if (index != -1) {
+         // 如果父数组存在本对象,说明之前已经被引用过,直接返回此对象
+         return children[index];
+       }
+       parents.push(parent);
+       children.push(child);
+   
+       for (let i in parent) {
+         // 递归
+         child[i] = _clone(parent[i]);
+       }
+   
+       return child;
+     };
+     return _clone(parent);
+   };
+   
+   ```
+
+    我们做一下测试 
+
+   ```js
+   function person(pname) {
+     this.name = pname;
+   }
+   
+   const Messi = new person('Messi');
+   
+   function say() {
+     console.log('hi');
+   }
+   
+   const oldObj = {
+     a: say,
+     c: new RegExp('ab+c', 'i'),
+     d: Messi,
+   };
+   
+   oldObj.b = oldObj;
+   
+   
+   const newObj = clone(oldObj);
+   console.log(newObj.a, oldObj.a); // [Function: say] [Function: say]
+   console.log(newObj.b, oldObj.b); // { a: [Function: say], c: /ab+c/i, d: person { name: 'Messi' }, b: [Circular] } { a: [Function: say], c: /ab+c/i, d: person { name: 'Messi' }, b: [Circular] }
+   console.log(newObj.c, oldObj.c); // /ab+c/i /ab+c/i
+   console.log(newObj.d.constructor, oldObj.d.constructor); // [Function: person] [Function: person]
+   
+   ```
+
+    当然,我们这个深克隆还不算完美,例如Buffer对象、Promise、Set、Map可能都需要我们做特殊处理，另外对于确保没有循环引用的对象，我们可以省去对循环引用的特殊处理，因为这很消耗时间，不过一个基本的深克隆函数我们已经实现了。 
+
+3.  在生产环境中最好用`lodash`的深克隆实现. `_.clonedeep(value)`
 
 ### 67 js⾃定义事件
 
@@ -4552,6 +5423,8 @@ ES6、7 代码输⼊ -> babylon 进⾏解析 -> 得到AST （抽象语法树）-
 
 　　***TypeScript* 最大的特点就是类型化**，因此才叫做TypeScript。比起弱类型的JavaScript，类型化的TypeScript显得更加容易维护。
 
+![1600164633053](/../../../../Typora图库/Web前端/ts和js区别.png)
+
 ### 3 Java和js区别
 
 相同之处包括：
@@ -4877,6 +5750,29 @@ PS：只讲有什么，不讲是什么。
     liLei.sayInfo()
     ```
 
+### 7 MVVM
+
+MVVM（Model–View–Viewmodel）是一种软件架构模式。
+
+MVVM有助于将图形用户界面的开发与业务逻辑或后端逻辑（数据模型）的开发分离开来，这是通过置标语言或GUI代码实现的。MVVM的视图模型是一个值转换器， 这意味着视图模型负责从模型中暴露（转换）数据对象，以便轻松管理和呈现对象。在这方面，视图模型比视图做得更多，并且处理大部分视图的显示逻辑。 视图模型可以实现中介者模式，组织对视图所支持的用例集的后端逻辑的访问。
+
+ 简单的讲，MVVM是MVC的改进版。 **MVC**中的**M**就是单纯的从网络获取回来的数据模型，**V**指的我们的视图界面，而**C**就是我们的ViewController。
+
+在其中，ViewController负责View和Model之间调度，View发生交互事件会通过target-action或者delegate方式回调给ViewController，与此同时ViewController还要承担把Model通过KVO、Notification方式传来的数据传输给View用于展示的责任。 **随着业务越来越复杂，视图交互越复杂，导致Controller越来越臃肿。**
+
+所以为了解决这个问题，MVVM就闪亮登场了。他把View和Contrller都放在了View层（相当于把Controller一部分逻辑抽离了出来），Model层依然是服务端返回的数据模型。**而ViewModel充当了一个UI适配器的角色，也就是说View中每个UI元素都应该在ViewModel找到与之对应的属性。除此之外，从Controller抽离出来的与UI有关的逻辑都放在了ViewModel中，这样就减轻了Controller的负担。**
+
+ ![img](/../../../../Typora图库/Web前端/MVVM.png) 
+
+从以上的架构图中，我们可以很清晰的梳理出各自的分工。
+
+- **View层**：视图展示。包含UIView以及UIViewController，View层是可以持有ViewModel的。
+- **ViewModel层**：视图适配器。暴露属性与View元素显示内容或者元素状态一一对应。一般情况下ViewModel暴露的属性建议是readOnly的，至于为什么，我们在实战中会去解释。还有一点，ViewModel层是可以持有Model的。
+- **Model层**：数据模型与持久化抽象模型。数据模型很好理解，就是从服务器拉回来的JSON数据。而持久化抽象模型暂时放在Model层，是因为MVVM诞生之初就没有对这块进行很细致的描述。按照经验，我们通常把数据库、文件操作封装成Model，并对外提供操作接口。（有些公司把数据存取操作单拎出来一层，称之为**DataAdapter层**，所以在业内会有很多MVVM的变种，但其本质上都是MVVM）。
+- **Binder**：MVVM的灵魂。可惜在MVVM这几个英文单词中并没有它的一席之地，它的最主要作用是在View和ViewModel之间做了双向数据绑定。如果MVVM没有Binder，那么它与MVC的差异不是很大。
+
+我们发现，正是因为View、ViewModel以及Model间的清晰的持有关系，所以在三个模块间的数据流转有了很好的控制。
+
 # 高阶部分
 
 ## React专题
@@ -4908,6 +5804,14 @@ this.setState((prevState, props) => {
 - Refs 是 React 提供给我们的安全访问 DOM 元素或者某个组件实例的句柄
 - 可以为元素添加ref 属性然后在回调函数中接受该元素在 DOM 树中的句柄，该值会作为回调函数的第⼀个参数返回
 
+**应该使用 Refs 的情况**
+
+以下是应该使用 refs 的情况：
+
+- 需要管理焦点、选择文本或媒体播放时
+- 触发式动画
+- 与第三方 DOM 库集成
+
 ### 4 在⽣命周期中的哪⼀步你应该发起 AJAX 请求
 
 我们应当**将AJAX 请求放到 componentDidMount 函数中执⾏**，主要原因有下:
@@ -4933,16 +5837,63 @@ createElement 函数是 JSX 编译之后使⽤的创建 React Element 的函数�
 
 ### 9 redux中间件
 
+ Redux 是当今最热门的前端开发库之一。它是 JavaScript 程序的可预测状态容器，用于整个应用的状态管理。使用 Redux 开发的应用易于测试，可以在不同环境中运行，并显示一致的行为。 
+
+**Redux遵循的三个原则是什么？**
+
+1. ***单一事实来源：***整个应用的状态存储在单个 store 中的对象/状态树里。单一状态树可以更容易地跟踪随时间的变化，并调试或检查应用程序。
+2. ***状态是只读的：***改变状态的唯一方法是去触发一个动作。动作是描述变化的普通 JS 对象。就像 state 是数据的最小表示一样，该操作是对数据更改的最小表示。
+3. ***使用纯函数进行更改：***为了指定状态树如何通过操作进行转换，你需要纯函数。纯函数是那些返回值仅取决于其参数值的函数。
+
+ Redux 使用 “Store” 将程序的整个状态存储在同一个地方。因此所有组件的状态都存储在 Store 中，并且它们从 Store 本身接收更新。单一状态树可以更容易地跟踪随时间的变化，并调试或检查程序。 
+
+Redux 由以下组件组成：
+
+1. **Action** – 这是一个用来描述发生了什么事情的对象。
+2. **Reducer** – 这是一个确定状态将如何变化的地方。
+3. **Store** – 整个程序的状态/对象树保存在Store中。
+4. **View** – 只显示 Store 提供的数据。
+
 中间件提供第三⽅插件的模式，**⾃定义拦截 action -> reducer 的过程。变为 action -> middlewares -> reducer 。这种机制可以让我们改变数据流**，实现如异步action ， action 过滤，⽇志输出，异常报告等功能
 
 - redux-logger ：提供⽇志输出
 - redux-thunk ：处理异步操作
 - redux-promise ：处理异步操作， actionCreator 的返回值是promise
 
-#### redux有什么缺点
+优点：
+
+**结果的可预测性 -**  由于总是存在一个真实来源，即 store ，因此不存在如何将当前状态与动作和应用的其他部分同步的问题。
+
+**可维护性 -**  代码变得更容易维护，具有可预测的结果和严格的结构。
+
+**服务器端渲染 -**  你只需将服务器上创建的 store 传到客户端即可。这对初始渲染非常有用，并且可以优化应用性能，从而提供更好的用户体验。
+
+**开发人员工具 -**  从操作到状态更改，开发人员可以实时跟踪应用中发生的所有事情。
+
+**社区和生态系统 -**  Redux 背后有一个巨大的社区，这使得它更加迷人。一个由才华横溢的人组成的大型社区为库的改进做出了贡献，并开发了各种应用。
+
+**易于测试 -**  Redux 的代码主要是小巧、纯粹和独立的功能。这使代码可测试且独立。
+
+**组织 -**  Redux 准确地说明了代码的组织方式，这使得代码在团队使用时更加一致和简单。
+
+
+
+缺点：
 
 - ⼀个组件所需要的数据，必须由⽗组件传过来，⽽不能像flux 中直接从store 取。
 - 当⼀个组件相关数据更新时，即使⽗组件不需要⽤到这个组件，⽗组件还是会重新render ，可能会有效率影响，或者需要写复杂的shouldComponentUpdate 进⾏判断。
+
+#### Reducer
+
+Reducers 是纯函数，它规定应用程序的状态怎样因响应 ACTION 而改变。Reducers 通过接受先前的状态和 action 来工作，然后它返回一个新的状态。它根据操作的类型确定需要执行哪种更新，然后返回新的值。如果不需要完成任务，它会返回原来的状态。
+
+#### Store
+
+Store 是一个 JavaScript 对象，它可以保存程序的状态，并提供一些方法来访问状态、调度操作和注册侦听器。应用程序的整个状态/对象树保存在单一存储中。因此，Redux 非常简单且是可预测的。我们可以将中间件传递到 store 来处理数据，并记录改变存储状态的各种操作。所有操作都通过 reducer 返回一个新状态。
+
+#### **Redux与Flux有何不同？**
+
+![1600172169457](/../../../../Typora图库/Web前端/redux和flux.png)
 
 ### 10 React为什么需要Hook
 
@@ -4950,8 +5901,8 @@ createElement 函数是 JSX 编译之后使⽤的创建 React Element 的函数�
 
 使用高阶组件来封装组件的这些逻辑其实会有以下的问题：
 
-- **高阶组件的开发对开发者不友好**：开发者（特别是初级开发者）需要花费一段时间才能搞懂其中的原理并且适应它的写法。如果你使用高阶组件已经很久了，你看到这个说法可能会有些不以为然。可是我相信你在最开始接触高阶组件的时候肯定也花了一段时间才能搞懂它的原理，而且从上面的例子来看高阶组件其实是十分笨重的。试想一下，某天你的项目来了一个React新手，估计他也得花费一段时间才能理解你写的那些高阶组件代码吧。
-- **高阶组件之间组合性差**：使用过高阶组件的同学一定试过由于要为组件添加不同的功能，我们要为同一个组件嵌套多个高阶组件，例如这样的代码：`withAuth(withRouter(withUserStatus(UserDetail)))`。这种嵌套写法的高阶组件可能会导致很多问题，其中一个就是props丢失的问题，例如withAuth传递给UserDetail的某个prop可能在withUserStatus组件里面丢失或者被覆盖了。如果你使用的高阶组件都是自己写的话还好，因为调试和修改起来都比较简单，如果你使用的是第三方的库的话就很头痛了。
+- **高阶组件的开发对开发者不友好**：开发者（特别是初级开发者）需要花费一段时间才能搞懂其中的原理并且适应它的写法。
+- **高阶组件之间组合性差**：由于要为组件添加不同的功能，我们要为同一个组件嵌套多个高阶组件。这种嵌套写法的高阶组件可能会导致很多问题，其中一个就是props丢失的问题。如果你使用的高阶组件都是自己写的话还好，因为调试和修改起来都比较简单，如果你使用的是第三方的库的话就很头痛了。
 - **容易发生wrapper hell**：这个问题在上面嵌套多重高阶组件的时候就会出现，具体会造成我们在React Devtools查看和调试某个组件的时候十分困难。 ![img](/../../../../Typora图库/Web前端/wrapperhell.png) 
 
 和高阶组件类似，renderProps也会存在同样的问题。基于这些原因，React需要一个**新的用来复用组件之间非UI逻辑的方法**，所以Hook就这么诞生了。总的来说，Hook相对于高阶组件和renderProps在复用代码逻辑方面有以下的优势：
@@ -4960,6 +5911,30 @@ createElement 函数是 JSX 编译之后使⽤的创建 React Element 的函数�
 - **组合简单**：Hook组合起来十分简单，组件只需要同时使用多个hook就可以使用到它们所有的功能。
 - **容易扩展**：Hook具有很高的可扩展性，你可以通过自定义Hook来扩展某个Hook的功能。
 - **没有wrapper hell**：Hook不会改变组件的层级结构，也就不会有wrapper hell问题的产生。
+
+除了用来替代难用的HOC和renderProps来解决组件非UI逻辑复用的问题之外，其实Hook还解决了以下这些问题。
+
+**组件的生命周期函数不适合side effect逻辑的管理**
+
+**我们可能会在组件的同一个生命周期函数放置很多互不关联的side effect逻辑**。举个例子，如果我们想在用户查看某个用户的详情页面的时候将浏览器当前标签页的title改为当前用户名的话，就需要在组件的componentDidMount生命周期函数里面添加`document.title = this.props.userName`这段代码，可是这段代码和之前订阅用户状态的逻辑是互不关联的，而且随着组件的功能变得越来越复杂，这些不关联而又放在一起的代码只会变得越来越多，于是你的组件逐渐变得难以测试。由此可见Class Component的生命周期函数并不适合用来管理组件的side effect逻辑。
+
+那么这个问题Hook又是如何解决的呢？由于每个Hook都是一个函数，所以你可以**将和某个side effect相关的逻辑都放在同一个函数（Hook）里面**（useEffect Hook）。这种做法有很多好处，首先关联的代码都放在一起，可以十分方便代码的维护，其次实现了某个side effect的Hook还可以被不同的组件进行复用来提高开发效率。
+
+**不友好的Class Component**
+
+由于JS本身的原因，在Class Component中你要手动为注册的event listener绑定this,**每个事件监听函数都要手动绑定this的酸爽感觉**，乏味而且容易引发bug.
+
+除了对开发者不友好，Class Component对机器也很不友好。例如Class Component的生命周期函数很难被minified。其次，Class Component的存在可能会阻碍React后面的发展。新的理念 Compiler as Framework的兴起，一些将框架的概念放到了编译时以去除production code里面的runtime代码来加快应用的首屏加载速度，这个方案已经开始被逐渐采纳了，而且未来有可能会成为潮流。因此React要想得到进一步的发展的话，就必须让开发者更多地使用Function Component而不是Class Component。
+
+Hook出来后解决了Function Component没有状态管理和生命周期函数等功能的问题，因为开发者可以使用**useState** Hook来在Function Component使用**state**以及**useEffect** Hook来实现一些和**生命周期函数类似的功能**。最重要的是，React将所有复杂的实现都封装在框架里面了，开发者无需学习函数式编程和响应式编程的概念也可以很好地使用Hook来进行开发。
+
+
+
+我主要论述了React为啥要有Hook，总的来说是以下三个原因：
+
+- Component非UI逻辑复用困难。
+- 组件的生命周期函数不适合side effect逻辑的管理。
+- 不友好的Class Component。
 
 ### 11 react组件的划分业务组件技术组件？
 
@@ -5064,7 +6039,9 @@ shouldComponentUpdate 这个⽅法⽤来判断是否需要调⽤render⽅法重�
 使⽤ production 版本的react.js
 使⽤key 来帮助React 识别列表中所有⼦组件的最⼩变化
 
-### 17 简述flux 思想
+### 17 flux 
+
+ Flux 是一种强制单向数据流的架构模式。它控制派生数据，并使用具有所有数据权限的中心 store 实现多个组件之间的通信。整个应用中的数据更新必须只能在此处进行。 Flux 为应用提供稳定性并减少运行时的错误。 
 
 Flux 的最⼤特点，就是数据的"单向流动"。
 
@@ -5135,6 +6112,1317 @@ class Demo {
 4. react**设计之初是主要负责UI层的渲染**，虽然每个组件有⾃⼰的state，state表示组件的状态，当状态需要变化的时候，需要使⽤setState更新我们的组件，但是，我们想通过⼀个组件重渲染它的兄弟组件，我们就需要将组件的状态提升到⽗组件当中，让⽗组件的状态来控制这两个组件的重渲染，当我们组件的层次越来越深的时候，状态需要⼀直往下传，⽆疑加⼤了我们代码的复杂度，我们需要⼀个**状态管理中⼼**，来帮我们管理我们状态state。
 5. 这个时候，redux出现了，我们可以将所有的state交给redux去管理，当我们的某⼀个state有变化的时候，依赖到这个state的组件就会进⾏⼀次重渲染，这样就解决了我们的我们需要⼀直把state往下传的问题。redux有action、reducer的概念，**action为唯⼀修改state的来源，reducer为唯⼀确定state如何变化的⼊⼝**，这使得redux的数据流⾮常规范，同时也暴露出了redux代码的复杂，本来那么简单的功能，却需要完成那么多的代码。
 6. 后来，社区就出现了另外⼀套解决⽅案，也就是mobx，它推崇代码简约易懂，只需要定义⼀个可观测的对象，然后哪个组价使⽤到这个可观测的对象，并且这个对象的数据有更改，那么这个组件就会重渲染，⽽且mobx内部也做好了是否重渲染组件的⽣命周期shouldUpdateComponent，不建议开发者进⾏更改，这使得我们使⽤mobx开发项⽬的时候可以简单快速的完成很多功能，连redux的作者也推荐使⽤mobx进⾏项⽬开发。但是，随着项⽬的不断变⼤，mobx也不断暴露出了它的缺点，就是数据流太随意，出了bug之后不好追溯数据的流向，这个缺点正好体现出了redux的优点所在，所以**针对于⼩项⽬来说，社区推荐使⽤mobx，对⼤项⽬推荐使⽤redux**
+
+### 21 React特点，优点，限制
+
+特点：
+
+1. 它使用**虚拟DOM **而不是真正的DOM。
+2. 它可以用**服务器端渲染**。
+3. 它遵循**单向数据流**或数据绑定。
+
+优点：
+
+1. 它提高了应用的性能
+2. 可以方便地在客户端和服务器端使用
+3. 由于 JSX，代码的可读性很好
+4. React 很容易与 Meteor，Angular 等其他框架集成
+5. 使用React，编写UI测试用例变得非常容易
+
+限制：
+
+1. React 只是一个库，而不是一个完整的框架
+2. 它的库非常庞大，需要时间来理解
+3. 新手程序员可能很难理解
+4. 编码变得复杂，因为它使用内联模板和 JSX
+
+### 22 JSX
+
+ JSX 是JavaScript XML 的简写。是 React 使用的一种文件，它利用 JavaScript 的表现力和类似 HTML 的模板语法。这使得 HTML 文件非常容易理解。此文件能使应用非常可靠，并能够提高其性能。 
+
+```jsx
+render(){
+    return(        
+        <div>
+            <h1> Hello World from Edureka!!</h1>
+        </div>
+    );
+}
+```
+
+**为什么浏览器无法读取JSX？**
+
+浏览器只能处理 JavaScript 对象，而不能读取常规 JavaScript 对象中的 JSX。所以为了使浏览器能够读取 JSX，首先，需要用像 Babel 这样的 JSX 转换器将 JSX 文件转换为 JavaScript 对象，然后再将其传给浏览器。
+
+### 23 组件
+
+#### render()
+
+每个React组件强制要求必须有一个 **render()**。它返回一个 React 元素，是原生 DOM 组件的表示。如果需要渲染多个 HTML 元素，则必须将它们组合在一个封闭标记内，例如 ``、``、`` 等。此函数必须保持纯净，即必须每次调用时都返回相同的结果。
+
+#### Props
+
+ Props 是 React 中属性的简写。它们是只读组件，必须保持纯，即不可变。它们总是在整个应用中从父组件传递到子组件。子组件永远不能将 prop 送回父组件。这有助于维护单向数据流，通常用于呈现动态生成的数据。 
+
+#### State
+
+状态是 React 组件的核心，是数据的来源，必须尽可能简单。基本上状态是确定组件呈现和行为的对象。与props 不同，它们是可变的，并创建动态和交互式组件。可以通过 `this.state()` 访问它们。使用setState更新。
+
+ ### 24 **受控组件和非受控组件**
+
+![1600171723739](/../../../../Typora图库/Web前端/受控组件和非受控组件.png)
+
+### 25 **高阶组件（HOC）**
+
+ 高阶组件是重用组件逻辑的高级方法，是一种源于 React 的组件模式。 HOC 是自定义组件，在它之内包含另一个组件。它们可以接受子组件提供的任何动态，但不会修改或复制其输入组件中的任何行为。你可以认为 HOC 是“纯（Pure）”组件。  
+
+*纯（Pure）* 组件是可以编写的最简单、最快的组件。它们可以替换任何只有 **render()** 的组件。这些组件增强了代码的简单性和应用的性能。 
+
+HOC可用于许多任务，例如：
+
+- 代码重用，逻辑和引导抽象
+- 渲染劫持
+- 状态抽象和控制
+- Props 控制
+
+### 处理输入输出
+
+单行输入
+
+```js
+while(line=readline()){
+    var lines = line.split(' ');
+    var a = parseInt(lines[0]);
+    var b = parseInt(lines[1]);
+    function add(m,n){
+        return m+n;
+    }
+    print(add(a,b));
+}
+```
+
+多行输入
+
+```js
+//多行输入举例
+//打印一个多行矩阵
+var n = parseInt(readline());
+var ans = 0;
+for(var i = 0;i < n; i++){
+    lines = readline().split(" ")
+    for(var j = 0;j < lines.length; j++){
+        ans += parseInt(lines[j]);
+    }
+    print(ans);
+}
+```
+
+Node实现多行输入（固定行数）
+
+```js
+var readline = require('readline');
+ 
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+ 
+var K = 2;
+var arr = [];
+rl.on('line', function(data) {
+    arr.push(data);
+    if (K == arr.length) {
+        var result = deal(arr);
+        console.log(result);
+        arr.length = 0;
+ 
+    }
+});
+ 
+function deal(inputs) {
+    //直接根据目标字符分割字符串成数组，计算数组长度减一就是所求。注意不区分大小写。
+    return inputs[0].toLowerCase().split(inputs[1].toLowerCase()).length-1;
+}
+```
+
+Node实现多行输入（行数不固定）
+
+```js
+process.stdin.resume();
+process.stdin.setEncoding('ascii');
+  
+var input = "";
+var input_array = "";
+  
+process.stdin.on('data', function (data) {
+    input += data;
+});
+  
+process.stdin.on('end', function () {
+    input_array = input.split("\n");
+　　 //示例代码
+    var len = input_array.length;
+    var result = [];
+    for(var i=0; i<len; i++){
+        var temp = input_array[i].trim().split(' ');
+        for(var j=0; j<temp.length; j++){
+            if(temp[j]!=='' && result.indexOf(temp[j]) == -1){
+                result.push(temp[j]);
+            }
+        }
+    }
+    console.log(result.length);
+});
+```
+
+# 题目
+
+## 前端实现
+
+### 1 如何在⻚⾯上实现⼀个圆形的可点击区域？
+
+**1. map和area**
+
+```xml
+<img src="./peppa.png" usemap="#Map">
+<map name="Map" id="Map">
+    <area shape="circle" coords="200,200,100" href="#rect" alt="圆形">
+</map>
+```
+
+将img和map标签连起来的是usemap，它的值是map的id
+ area属性：
+
+- shape：表示热点区域的形状，支持rect（矩形），circle（圆形），poly（多边形）
+- coords：表示热点区域的坐标，(0,0)表示图片左上角。rect四个值分别表示左上角坐标和右下角坐标。circle三个值分别表示圆心坐标和半径。poly有若干个值，每两个表示一个坐标点。
+- href：表示链接到某个地址，和<a>标签差不多
+- alt：对该区域描述，类似于<img>的alt
+
+**2. CSS3的border-radius属性**
+
+```csharp
+<div class="content"></div>
+.content{
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 1px solid #ccc;
+}
+var content = document.getElementsByClassName("content")[0]
+content.addEventListener("click",function(){
+    alert("aaa")
+})
+```
+
+**3. js实现**
+ 原理：设定一个坐标原点和半径，获取鼠标的x,y轴位置，当鼠标的位置与原点的位置不超过半径时，可点击。
+
+```jsx
+document.onclick = function(e){
+    let [x,y,r] = [100,100,100] // x,y为坐标原点，r为半径
+    let x1 = e.clientX; // 获取x坐标
+    let y1 = e.clientY; // 获取y坐标
+    let dis = Math.abs(Math.sqrt((Math.pow(x-x1,2)+Math.pow(y-y1,2))))
+    if(dis<r){
+        alert("bbb")
+    }
+}
+```
+
+- Math.abs()：取绝对值
+- Math.sqrt()：开平方
+- Math.pow(num,n)：num的n次方
+
+## JS题目
+
+### 1 ["1", "2", "3"].map(parseInt) 答案是多少
+
+[1, NaN, NaN] 
+
+parseInt 需要两个参数 (val, radix) ，其中radix 表示解析时⽤的基数。
+
+ map方法中接受一个函数function，用来处理遍历数组中的每一个元素。  这个callback一共可以接收三个参数，其中第一个参数代表当前被处理的元素，第二个参数代表该元素的索引。 
+
+下面我们来分析一下['1', '2', '3'].map(parseInt);（**相当于parseInt(x, x.indexof())**）
+
+1. parseInt('1', 0); // radix为0时，使用默认的10进制。
+2. parseInt('2', 1); // radix值在2-36，无法解析，返回NaN
+3. parseInt('3', 2); // 基数为2，2进制数表示的数中，最大值小于3，无法解析，返回NaN
+
+map函数返回的是一个数组，所以最后结果为[1, NaN, NaN]
+
+### 2 如何通过JS判断⼀个数组
+
+- instanceof ⽅法：instanceof 运算符是⽤来测试⼀个对象是否在其原型链原型构造函数的属性
+
+  ```javascript
+  var arr = [];
+  arr instanceof Array; // true
+  ```
+
+- constructor ⽅法：constructor 属性返回对创建此对象的数组函数的引⽤，就是返回对象相对应的构造
+  函数
+
+  ```javascript
+  var arr = [];
+  arr.constructor == Array; //true
+  ```
+
+- jQuery 正在使⽤的
+
+  ```javascript
+  Object.prototype.toString.call(value) == '[object Array]'
+  // 利⽤这个⽅法，可以写⼀个返回数据类型的⽅法
+  var isType = function (obj) {
+  	return Object.prototype.toString.call(obj).slice(8,-1);
+  }
+  ```
+
+- ES5 新增⽅法isArray()
+
+  ```javascript
+  var a = new Array(123);
+  var b = new Date();
+  console.log(Array.isArray(a)); //true
+  console.log(Array.isArray(b)); //false
+  ```
+
+### 3 快速的让⼀个数组乱序
+
+```javascript
+var arr = [1,2,3,4,5,6,7,8,9,10];
+arr.sort(function(){
+	return Math.random() - 0.5;
+})
+console.log(arr);
+```
+
+### 4 如何渲染⼏万条数据并不卡住界⾯
+
+应该⼀次渲染部分 DOM ，那么就可以通过requestAnimationFrame 来每 16 ms 刷新⼀次
+
+```javascript
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+<title>Document</title>
+</head>
+<body>
+    <ul>控件</ul>
+	<script>
+		setTimeout(() => {
+			// 插⼊⼗万条数据
+			const total = 100000
+			// ⼀次插⼊ 20 条，如果觉得性能不好就减少
+			const once = 20
+			// 渲染数据总共需要⼏次
+			const loopCount = total / once
+			let countOfRender = 0
+			let ul = document.querySelector("ul");
+			function add() {
+				// 优化性能，插⼊不会造成回流
+				const fragment = document.createDocumentFragment();
+				for (let i = 0; i < once; i++) {
+					const li = document.createElement("li");
+					li.innerText = Math.floor(Math.random() * total);
+					fragment.appendChild(li);
+				}
+				ul.appendChild(fragment);
+				countOfRender += 1;
+				loop();
+			}
+			function loop() {
+				if (countOfRender < loopCount) {
+				window.requestAnimationFrame(add);
+			}
+		}
+		loop();
+	}, 0);
+</script>
+</body>
+</html>
+```
+
+### 5 数组去重⽅法总结
+
+**⽅法⼀、利⽤ES6 Set去重（ES6中最常⽤）**
+
+```javascript
+function unique (arr) {
+return Array.from(new Set(arr))
+}
+```
+
+**⽅法⼆、利⽤for嵌套for，然后splice去重（ES5中最常⽤）**
+
+```javascript
+function unique(arr){
+	for(var i=0; i<arr.length; i++){
+		for(var j=i+1; j<arr.length; j++){
+			if(arr[i]==arr[j]){ //第⼀个等同于第⼆个，splice⽅法删除
+				arr.splice(j,1);
+				j--;
+			}
+		}
+	}
+	return arr;
+}
+```
+
+**⽅法三、利⽤indexOf去重**
+
+```javascript
+function unique(arr) {
+	if (!Array.isArray(arr)) {
+		console.log('type error!')
+		return
+	}
+	var array = [];
+		for (var i = 0; i < arr.length; i++) {
+			if (array .indexOf(arr[i]) === -1) {
+				array .push(arr[i])
+			}
+		}
+	return array;
+}
+```
+
+新建⼀个空的结果数组， for 循环原数组，判断结果数组是否存在当前元素，如果有相同的值则跳过，不相同则push 进数组
+
+**⽅法四、利⽤sort()**
+
+```javascript
+function unique(arr) {
+	if (!Array.isArray(arr)) {
+		console.log('type error!')
+		return;
+	}
+	arr = arr.sort()
+	var arrry= [arr[0]];
+	for (var i = 1; i < arr.length; i++) {
+		if (arr[i] !== arr[i-1]) {
+			arrry.push(arr[i]);
+		}
+	}
+	return arrry;
+}
+```
+
+利⽤sort() 排序⽅法，然后根据排序后的结果进⾏遍历及相邻元素⽐对
+
+**⽅法五、利⽤对象的属性不能相同的特点进⾏去重**
+
+```javascript
+function unique(arr) {
+	if (!Array.isArray(arr)) {
+		console.log('type error!')
+		return
+	}
+	var arrry= [];
+	var obj = {};
+	for (var i = 0; i < arr.length; i++) {
+		if (!obj[arr[i]]) {
+			arrry.push(arr[i])
+			obj[arr[i]] = 1
+		} else {
+			obj[arr[i]]++
+		}
+	}
+	return arrry;
+}
+```
+
+**⽅法六、利⽤includes**
+
+```javascript
+function unique(arr) {
+	if (!Array.isArray(arr)) {
+		console.log('type error!')
+		return
+	}
+	var array =[];
+	for(var i = 0; i < arr.length; i++) {
+		if( !array.includes( arr[i]) ) {//includes 检测数组是否有某个值
+			array.push(arr[i]);
+		}
+	}
+	return array
+}
+```
+
+**⽅法七、利⽤hasOwnProperty**
+
+```javascript
+function unique(arr){
+    var array=[], obj={};
+    for(let i=0; i<arr.length; i++){
+        if(!obj.hasOwnProperty(arr[i])){
+            array.push(arr[i]);
+            obj[arr[i]] = true;
+        }
+    }
+    return array;
+}
+```
+
+利⽤hasOwnProperty 判断是否存在对象属性
+
+**⽅法⼋、利⽤filter**
+
+```javascript
+function unique(arr) {
+	return arr.filter(function(item, index, arr) {
+		//当前元素，在原始数组中的第⼀个索引==当前索引值，否则返回当前元素
+		return arr.indexOf(item, 0) === index;
+	});
+}
+```
+
+**⽅法九、利⽤递归去重**
+
+```javascript
+function unique(arr) {
+	var array= arr;
+	var len = array.length;
+	array.sort(function(a,b){ //排序后更加⽅便去重
+		return a - b; 
+	});
+	function loop(index){
+		if(index >= 1){
+			if(array[index] === array[index-1]){
+				array.splice(index,1);
+			}
+			loop(index - 1); //递归loop，然后数组去重
+		} 
+	}
+	loop(len-1);
+	return array; 
+}
+```
+
+**⽅法⼗、利⽤Map数据结构去重**
+
+```javascript
+function arrayNonRepeatfy(arr) {
+	let map = new Map();
+	let array = new Array(); // 数组⽤于返回结果
+	for (let i = 0; i < arr.length; i++) {
+		if(map.has(arr[i])) { // 如果有该key值
+			map.set(arr[i], true); 
+		} else {
+			map.set(arr[i], false); // 如果没有该key值
+			array.push(arr[i]); 
+		} 
+	}
+	return array; 
+}
+```
+
+**⽅法⼗⼀、利⽤reduce+includes**
+
+```javascript
+function unique(arr){
+    return arr.reduce((prev,cur) => prev.includes(cur) ? prev : [...prev,cur],[]);
+}
+```
+
+**⽅法⼗⼆、[...new Set(arr)]**
+
+```javascript
+[...new Set(arr)]
+//代码就是这么少----（其实，严格来说并不算是⼀种，相对于第⼀种⽅法来说只是简化了代码）
+```
+
+### 6 实现⼀个对⻚⾯某个节点的拖曳
+
+- 给需要拖拽的节点绑定mousedown , mousemove , mouseup 事件
+- mousedown 事件触发后，开始拖拽
+- mousemove 时，需要通过event.clientX 和clientY 获取拖拽位置，并实时更新位置
+- mouseup 时，拖拽结束
+
+- 需要注意浏览器边界的情况
+
+### 7 写⼀个通⽤的事件侦听器函数
+
+```javascript
+// event(事件)⼯具集，来源：github.com/markyun
+markyun.Event = {
+	// 视能⼒分别使⽤dom0||dom2||IE⽅式 来绑定事件
+	// 参数： 操作的元素,事件名称 ,事件处理程序
+	addEvent : function(element, type, handler) {
+		if (element.addEventListener) {
+			//事件类型、需要执⾏的函数、是否捕捉
+			element.addEventListener(type, handler, false);
+		} else if (element.attachEvent) {
+			element.attachEvent('on' + type, function() {
+			handler.call(element);
+		});
+	} else {
+		element['on' + type] = handler;
+	}
+},
+// 移除事件
+removeEvent : function(element, type, handler) {
+	if (element.removeEventListener) {
+		element.removeEventListener(type, handler, false);
+	} else if (element.datachEvent) {
+		element.detachEvent('on' + type, handler);
+	} else {
+		element['on' + type] = null;
+	}
+},
+// 阻⽌事件 (主要是事件冒泡，因为IE不⽀持事件捕获)
+stopPropagation : function(ev) {
+	if (ev.stopPropagation) {
+		ev.stopPropagation();
+	} else {
+		ev.cancelBubble = true;
+	}
+},
+// 取消事件的默认⾏为
+preventDefault : function(event) {
+	if (event.preventDefault) {
+		event.preventDefault();
+	} else {
+		event.returnValue = false;
+	}
+},
+// 获取事件⽬标
+getTarget : function(event) {
+	return event.target || event.srcElement;
+}
+```
+
+### 8 求⼀个字符串的字节⻓度
+
+假设：⼀个英⽂字符占⽤⼀个字节，⼀个中⽂字符占⽤两个字节
+
+```javascript
+function GetBytes(str){
+	var len = str.length;
+	var bytes = len;
+	for(var i=0; i<len; i++){
+		if (str.charCodeAt(i) > 255) bytes++;
+	}
+	return bytes;
+}
+alert(GetBytes("你好,as"));
+```
+
+### 9 
+
+### 10 定义⼀个log⽅法，让它可以代理console.log的⽅法
+
+```javascript
+function log(){
+	console.log.apply(console, arguments);
+};
+```
+
+### 11 输出今天的⽇期
+
+```javascript
+var d = new Date();
+// 获取年，getFullYear()返回4位的数字
+var year = d.getFullYear();
+// 获取⽉，⽉份⽐较特殊，0是1⽉，11是12⽉
+var month = d.getMonth() + 1;
+// 变成两位
+month = month < 10 ? '0' + month : month;
+// 获取⽇
+var day = d.getDate();
+day = day < 10 ? '0' + day : day;
+alert(year + '-' + month + '-' + day);
+```
+
+### 12 ⽤js实现随机选取10–100之间的10个数字，存⼊⼀个数组，并排序
+
+```javascript
+var iArray = [];
+funtion getRandom(istart, iend){
+	var iChoice = istart - iend +1;
+	return Math.floor(Math.random() * iChoice + istart;
+}
+for(var i=0; i<10; i++){
+	iArray.push(getRandom(10,100));
+}
+iArray.sort();
+```
+
+### 13 提取URL中的各个GET参数
+
+有这样⼀个URL ： `http://item.taobao.com/item.htm?a=1&b=2&c=&d=xxx&e` ，请写⼀段JS程序提取URL中的各个GET参数(参数名和参数个数不确定)，将其按key-value 形式返回到⼀个json 结构中，如{a:'1', b:'2', c:'', d:'xxx', e:undefined}
+
+```javascript
+function serilizeUrl(url) {
+	var result = {};
+	url = url.split("?")[1];
+	var map = url.split("&");
+	for(var i = 0, len = map.length; i < len; i++) {
+		result[map[i].split("=")[0]] = map[i].split("=")[1];
+	}
+	return result;
+}
+```
+
+### 14 清除字符串前后的空格
+
+```javascript
+if (!String.prototype.trim) {
+	String.prototype.trim = function() {
+		return this.replace(/^\s+/, "").replace(/\s+$/,"");
+	}
+}
+```
+
+### 15 实现每隔⼀秒钟输出1,2,3...数字
+
+```javascript
+for(var i=0;i<10;i++){
+	(function(j){
+		setTimeout(function(){
+			console.log(j+1)
+		},j*1000)
+	})(i)
+}
+
+```
+
+### 16 判断输⼊是不是回⽂字符串
+
+```javascript
+function run(input) {
+	if (typeof input !== 'string') return false;
+	return input.split('').reverse().join('') === input;
+}
+
+```
+
+### 17 数组扁平化处理
+
+实现⼀个flatten ⽅法，使得输⼊⼀个数组，该数组⾥⾯的元素也可以是数组，该⽅法会输出⼀个扁平化的数组
+
+```javascript
+function flatten(arr){
+	return arr.reduce(function(prev,item){
+		return prev.concat(Array.isArray(item)?flatten(item):item);
+	},[]);
+}
+
+```
+
+### 18 从八道面试题看JavaScript DOM事件机制
+
+- 2,1
+
+  ```js
+  <div class="test1">
+      <div class="test2"></div>
+  </div>
+  <script>
+      document.querySelector('.test1').addEventListener('click',function () {
+          console.log(1)
+      })
+      document.querySelector('.test2').addEventListener('click',function () {
+          console.log(2)
+      })
+  </script>
+  
+  ```
+
+- 1,2
+
+  ```js
+  <div class="test1">
+      <div class="test2"></div>
+  </div>
+  <script>
+      document.querySelector('.test1').addEventListener('click', function () {
+          console.log(1)
+      }, true)
+      document.querySelector('.test2').addEventListener('click', function () {
+          console.log(2)
+      }, true)
+  </script>
+  
+  ```
+
+- 2,1
+
+  ```js
+  <div class="test1">
+      <div class="test2"></div>
+  </div>
+  <script>
+      document.querySelector('.test1').addEventListener('click', function () {
+          console.log(1)
+      })
+      document.querySelector('.test2').addEventListener('click', function () {
+          console.log(2)
+      }, true)
+  </script>
+  
+  ```
+
+- 1,2
+
+  ```js
+  <div class="test1">
+      <div class="test2"></div>
+  </div>
+  <script>
+      document.querySelector('.test1').addEventListener('click', function () {
+          console.log(1)
+      }, true)
+      document.querySelector('.test2').addEventListener('click', function () {
+          console.log(2)
+      })
+  </script>
+  
+  ```
+
+ 解答：
+
+事件机制是**先进行捕获，再进行冒泡** .
+
+ 对`addEventListener`的第三个参数 ，`useCapture` 可选，Boolean，**在DOM树中，注册了listener的元素， 是否要先于它下面的EventTarget，调用该listener**。 当useCapture(设为true) 时，沿着DOM树向上冒泡的事件，不会触发listener。当一个元素嵌套了另一个元素，并且两个元素都对同一事件注册了一个处理函数时，所发生的事件冒泡和事件捕获是两种不同的事件传播方式。事件传播模式决定了元素以哪个顺序接收事件。
+
+- 1,2
+
+  ```js
+  <div class="test1"></div>
+  <script>
+      document.querySelector('.test1').addEventListener('click', function () {
+          console.log(1)
+      })
+      document.querySelector('.test1').addEventListener('click', function () {
+          console.log(2)
+      }, true)
+  </script>
+  
+  ```
+
+解答： 若是被监听的元素没有子元素，那么哪一个监听代码写在前面，就先执行哪一个！ 
+
+- 1,2,1
+
+  ```js
+  <label>Click me <input type="text"></label>
+  <script>
+      document.querySelector('label').addEventListener('click',function () {
+          console.log(1)
+      })
+      document.querySelector('input').addEventListener('click',function () {
+          console.log(2)
+      })
+  </script>
+  
+  ```
+
+解答： 由于label和input是有绑定的，**点击label后，浏览器自动帮你再点击一次label过程**，就是先进行一次事件机制，这一次对内部input元素的事件监听是无论不问的，因此先打出`1`结束后，再进行一次事件机制，这一次，按照正常事件机制流程走，因此接着打出了`2,1` 
+
+### 19 作用域题目
+
+题一：
+
+```js
+var a = 1;
+function fn() {
+  console.log('1:' + a);
+
+  var a = 2;
+  bar()
+  console.log('2:' + a)
+}
+
+function bar() {
+  console.log('3:' + a)
+}
+
+fn()
+
+/**
+1:undefined
+3:1
+2:2
+*/
+
+```
+
+第一个 a 打印的值是 `1:undefined` 而不是 1。因为我们在 `fn()` 中定义了变量 a，用 var 定义的变量会在当前作用域提升，但是并不会携带赋给变量的值一起提升。
+
+第二个 a 打印的值是 `3:1` 而不是 2。因为函数 bar 是定义在全局作用域中的，所以作用域链是 bar -> global，bar 里面没有定义a，所以就会顺着作用域链向上找，然后在 global 中找到了 a。
+
+第三个 a 打印的值是 `2:2`。这句话所在的作用域链是 fn -> global，执行 `console.log('2:' + a)` 会首先在 fn 作用域里查找 a，找到有 a，并且值为2，所以结果就是2。
+
+题二：
+
+```js
+var a = 1;
+function fn() {
+  console.log('1:' + a);
+  a = 2
+}
+
+a = 3;
+function bar() {
+  console.log('2:' + a);
+}
+
+fn();
+bar();
+
+/**
+1:3
+2:2
+*/
+
+```
+
+第一个 a 打印的值是 `1:3`，既不是 undefined 也不是 1。首先， `fn` 中的 `a = 2` 是给变量 a 赋值，并没有定义变量。然后，执行函数 `fn`，在查找变量 a 时，此时查找的变量就是全局变量 a，不过此时 a 的值为3。
+
+第二个 a 打印的值是 `2:2`。函数 bar 所能访问的作用域链为 bar->global，在执行函数 bar 时，a 的值已经被修改成了 2。
+
+前面的东西可能有点啰嗦冗余，我们稍稍提炼总结一下。
+
+> 在JavaScript中，通过 `let` 和 `const` 定义的变量具有块级作用域的特性。
+>
+> 通过 `var` 定义的变量会在它自身的作用域中进行提升，而 `let` 和 `const` 定义的变量不会。
+>
+> **每个JavaScript程序都具有一个全局作用域，每创建一个函数都会创建一个作用域**。
+>
+> 在创建函数时，将这些函数进行嵌套，它们的作用域也会嵌套，形成作用域链，**子作用域可以访问父作用域，但是父作用域不能访问子作用域**。
+>
+> 在执行一个函数时，如果我们需要查找某个变量值，那么会去这个函数被 **定义** 时所在的作用域链中查找，一旦找到需要的变量，就会停止向上查找。
+>
+> “变量的**值**由函数定义时的位置决定”这句话有歧义，准确说是**查找**变量时，是去定义这个函数时所在的作用域链查找。
+
+ 其实记住2条规则，大部分作用域的面试题都可以解，**1、function 提升 优先 var 2、(function)同名的，后面覆盖前面。** 
+
+#### 变量提升和函数提升
+
+在开始阐述之前，我们来看一段代码，看看结果是什么？
+
+```js
+alert(a);
+function a(){ alter(2); }
+alert(a);
+var a = 1
+alert(a);
+var a = 3;
+alert(a);
+function a(){ alter(4); }
+alert(a);
+a();
+
+```
+
+这里先揭晓答案：
+
+> - 第一个 `alert(a)`  弹出 `function a(){ alter(4); }` 函数体
+> - 第二个 `alter(a)`  弹出 `function a(){ alter(4); }` 函数体
+> - 第三个 `alter(a)`  弹出 **1**
+> - 第四个 `alter(a)`  弹出 **3**
+> - 第五个 `alter(a)`  弹出 **3**
+> - 最后一行报错 `a is not a function`
+
+下面来分析一下这段代码： 其实在 `javascript` 开始执行代码之前，有一个 **预解析（预编译）** 的过程，这个过程会产生 **变量提升** 和 **函数提升** ，其实整个执行过程可以分为两部分，方便理解：
+
+1. **预解析** 这个过程，会把 关键字 `var` 、 `function` 、 **参数** 提取出来
+
+上面这段代码 **预解析** 的过程是：
+
+```js
+// 第1行，没有关键字 ， 不解析
+// 第2行，遇到 function 关键字，解析到全局的头部
+a = function a(){ alter(2); }
+// 第3行，没有关键字 ， 不解析
+// 第4行，遇到关键字 var ， 解析到全局的头部
+a = undefined
+// 第5行，没有关键字 ， 不解析
+// 第6行，遇到关键字 var ， 解析到全局的头部
+a = undefined
+// 第8行，遇到 function 关键字，解析到全局的头部
+a = function a(){ alter(4); }
+// 第9行，没有关键字 ， 不解析
+// 第10行，a() 函数调用
+
+```
+
+此时这里有4个同名变量 a ，依循规则是：**`function` 优先与 `var`, 同名的后面覆盖前面的** 
+
+因此，`a = function a(){ alter(2); }` 替换掉下面的2个 `a = undefined` ，`a = function a(){ alter(4); }` 又替换掉 `a = function a(){ alter(2); }` ,最终只剩下 `a = function a(){ alter(4); }`
+
+**预解析（预编译）** 后的代码样子是这样的
+
+```js
+var a = function a(){ alter(4); }
+alert(a);
+alert(a);
+a = 1
+alert(a);
+a = 3;
+alert(a);
+alert(a);
+a();
+
+```
+
+执行代码，就是执行的这段代码，依次从上到下执行，最后的 `a()` 函数调用，这时的 `a` 已被 **表达式** 赋值成 **3** ，而报错 `a is not a function`
+
+#### 全局作用域和局部作用域
+
+再看这段代码
+
+```js
+var a = 1;
+function fn1(){
+    alert(a);
+    var a = 2;
+}
+fn1();
+alert(a);
+
+```
+
+这里先揭晓答案：
+
+- 第一个 `alert(a)` 弹出 `undefined`
+- 第二个 `alert(a)` 弹出 **1** 
+
+`JavaScript` 的作用域只用两种，一个是全局的，一个是函数的，也称为 **全局作用域** 和 **局部作用域** ；**局部作用域** 可以访问 **全局作用域** 。但是 **全局作用域** 不能访问 **局部作用域**
+
+同样用 **预解析（预编译）** 的方法来分析这段代码
+
+1. **预解析（预编译）** 全局作用域
+
+```js
+// 第1行，遇到 var 关键字，解析到全局的头部
+a = undefined
+// 第2行，遇到 function 关键字，解析到全局的头部
+fn1 = function fn1(){
+    alert(a);
+    var a = 2;
+}
+// 第3行，没有遇到关键字，不解析
+// 第4行，没有遇到关键字，不解析
+
+```
+
+1. 开始执行代码
+
+第1行，遇到表达式 `a = 1`, **a** 被赋值成 **1** 
+ 第6行，遇到函数调用 `fn1()` ,开始 **预解析（预编译）** 局部
+
+1. **预解析（预编译）** 局部作用域
+
+```js
+// 第3行，没有遇到关键字，不解析
+// 第4行，遇到 var 关键字，解析到局部
+a = undefined
+
+```
+
+开始执行 **局部** 代码：第3行，弹出 `undefined` 第4行，遇到表达式，把局部 **a** 改成 **2**
+
+局部执行完成，继续执行全局：第7行，弹出 **1** ，因为全局和局部是两个独立的作用域
+
+#### 作用域链
+
+如果，把上面👆代码，稍作修改
+
+```js
+var a = 1;
+function fn1(){
+    alert(a);
+    a = 2;
+}
+fn1();
+alert(a);
+
+```
+
+去掉了 `function` 里的 `var` ，结果就会不一样 这次，输出的是：
+
+- 第一个 `alert` 弹出 **1**
+- 第二个 `alert` 弹出 **2** ：因为在解析局部是没有发现 `var a` ，如是在执行时，就会去全局查找，找到了全局的 `a = 1` ，所以 第一个 `alert` 弹出 **1** ，而不是 `undefined` ,这个就是 **作用域链**
+
+#### 匿名函数表达式、具名函数表达式
+
+在来看看这段代码👇
+
+```js
+var a = 3;
+function fn() {
+    foo();
+    function foo() {
+        console.log(1);
+    }
+    foo();
+    var foo = function() {
+        console.log(2);
+    };
+    foo();
+    var bar = function foo() {
+        if(a > 3) return;
+        console.log(++a);
+        foo();
+    };
+    foo();
+    bar();
+}
+fn();
+
+```
+
+先揭晓答案：
+
+> - 第1个 `foo()` 输出的是 **1**
+> - 第2个 `foo()` 输出的是 **1**
+> - 第3个 `foo()` 输出的是 **2**
+> - 第4个 `foo()` 输出的是 **2**
+> - 最后的 `bar()` 输出的是 **4**
+
+以上代码包含了 **函数声明** 、 **匿名函数表达式** 、 **具名函数表达式** ，**匿名函数表达式** 、 **具名函数表达式** 是把函数体赋值给一个变量，因此拥有和变量相同的特性 **变量提升** ，而 **具名函数表达式** 的函数名只能在函数内部使用。
+
+了解了这些，再来分析段代码
+
+- **全局预解析**
+
+```js
+a = undefined
+fn = function fn(){
+    ...
+}
+
+```
+
+- **执行代码** 第1行，遇到表达式,把 **a** 的值改变成3 ;最后行，遇到函数调用，重新 **预解析** 局部
+- **局部预解析**
+
+```js
+// 第4行，遇到 function 关键字，解析到局部的头部
+foo = function(){
+    console.log(1);
+}
+// 第8行，遇到 var 关键字，解析到局部的头部
+foo = undefined
+// 第12行，遇到 var 关键字，解析到局部的头部
+bar = undefined
+
+```
+
+由于有两个同名变量 `foo` ，遵循 `function` 优先 `var` 因此， `foo = undefined` 被干掉
+
+**局部预解析** 完之后的代码应该是这个样子👇
+
+```js
+var a = 3
+function fn() {
+    var foo = function foo() {
+        console.log(1);
+    }
+    var bar;
+    foo();
+    foo();
+    foo = function foo() {
+        console.log(2);
+    };
+    foo();
+    bar = function foo() {
+        if(a > 3) return;
+        console.log(++a);
+        foo();
+    };
+    foo();
+    bar();
+}
+fn();
+
+```
+
+- **执行局部代码** 
+  第1个 `foo()` 输出的是 **1** 
+  第2个 `foo()` 输出的是 **1** 
+  第3个 `foo()` 输出的是 **2** 
+  第4个 `foo()` 输出的是 **2** ，注意这个 `foo()` 输出的是上面 `foo = function foo() {console.log(2);}` 的内容，因为 **具名函数表达式** 的函数名只能在函数内部使用，在外部无法访问。
+  最后的 `bar()` 输出的是 **4** ，这里才是输出 `function foo() {if(a > 3) return;console.log(++a);foo();}` 里的内容，而且，这个函数体内也有自身的调用，结果 `a` 变量 **+1** ，说明可以调用，其实，可以用 `bar.name` 输出的就是 `foo`
+
+**所以，注意：**
+
+> - `bar = function foo()` , 不要用这种写法 ，优雅的写法是 **变量名** 和 **函数名** 保持一致 `foo = function foo()`
+>
+> - 不推荐使用 
+>
+> 匿名函数表达式
+>
+> ，有以下 👇 几个缺点 
+>
+>   - 在追踪栈中没函数名，调试困难
+>   - 如果需要引用自身，只能用非标准的 `arguments.callee`（ES5严格模式禁用）
+
+#### **作用域相关笔试题，严格模式，setTimeout**
+
+第一题：
+
+```js
+console.log(a());// 2
+var a = function b(){
+    console.log(1);
+}
+console.log(a());// 1
+function a(){
+    console.log(2);
+}
+console.log(a());// 1
+console.log(b());// reference error
+
+```
+
+代码编译后，变量提升，函数优先，赋值语句中b为右值，非变量声明，所以代码等价于
+
+```js
+function a(){
+    console.log(2);
+}
+var a;
+console.log(a());// 2
+a = function (){
+    console.log(1);
+}
+console.log(a());// 1
+
+console.log(a());// 1
+console.log(b());// reference error
+
+```
+
+第二题：
+
+```js
+function test() {
+    console.log(a);// undefined
+    console.log(b);// reference error
+    console.log(c);// reference error
+    var a = b =1;// 等价于 var a=1;b=1;
+    let c = 1;
+}
+test();
+console.log(b);// 1
+console.log(a);// reference error
+
+```
+
+var 声明的变量会变量提升，并依附函数作用域，而**b变量未声明就作为左值，会变成全局变量，但是不会变量提升**；
+
+第三题：
+
+```js
+"use strict";
+function test() {
+    console.log(a);// undefined
+    console.log(b);// reference error
+    console.log(c);// reference error
+    var a = b =1;// 直接抛出语法错误
+    let c = 1;
+}
+test();
+console.log(b);// reference error
+console.log(a);// reference error
+
+```
+
+**进入严格模式后，b=1这种语法会直接出错，不会变成全局变量**
+
+第四题：
+
+- 4.1题
+
+```js
+for(var i=0;i<5;i++){
+  setTimeout(function(){console.log(i)},0); // 5 5 5 5 5 
+}
+
+```
+
+i 依附函数作用域，执行过程只有一个i，而setTimeout是异步函数，需要等栈中的代码执行完后再执行，此时i已经变为5
+
+- 4.2题
+
+```js
+for(let i=0;i<5;i++){
+  setTimeout(function(){console.log(i)},0); // 1 2  3  4
+}
+
+```
+
+let 依附for的块级作用域，代码等价于
+
+```js
+for(let i=0;i<5;i++){
+  let j = i;
+  setTimeout(function(){console.log(j)},0); // 1 2  3  4
+}
+
+```
+
+可以看出每次循环都产生一个新的内存单元，异步函数执行时，取到的值为当时保持的快照值。
+
+- 4.3题
+
+```js
+for(var i=0;i<5;i++){
+ (function(i){
+   setTimeout(function(){console.log(i)},0); // 1 2  3  4
+  })(i);
+}
+
+```
+
+使用IIFE来创建快照值，将for 循环的i 传递给立即执行表达式中的参数i，i是基本数据类型，为赋值传递，会产生一个新的内存单元，每次循环都产生一个快照值，所以异步函数执行的时候，取到的值为当时保持的快照值。
+
+- 4.4题
+
+```js
+for(var i={j:0};i.j<5;i.j++){
+ (function(i){
+   setTimeout(function(){console.log(i.j)},0); // 5 5 5 5 5
+  })(i);
+}
+
+```
+
+i不是基本数据类型，为引用传递，i始终指向同一内存单元
+
+- 4.5题
+
+```js
+for(let i={j:0};i.j<5;i.j++){
+   setTimeout(function(){console.log(i.j)},0); // 5 5 5 5 5
+}
+
+```
+
+与上面4.4题同理
+
+- 4.6题
+  如何改变4.4题的立即执行表达式，输出1，2，3，4
+
+```js
+for(var i={j:0};i.j<5;i.j++){
+ (function(i){
+   setTimeout(function(){console.log(i.j)},0); // 1 2 3 4
+  })(JSON.parse(JSON.stringify(i)));
+}
+
+```
+
+将i序列化和反序列化，产生新的内存单元值，不让i指向同一内存单元
+
+
 
 ## 计算机基础
 
